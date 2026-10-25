@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "valora-api",
+  "account_id": "7d7db815f4a8f55e80adbe86d041a846",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "APP_ENV": "production",
+    "JWT_ISSUER": "https://valora-api.jadhav-rushikesh-ggl.workers.dev",
+    "ALLOWED_ORIGINS": "",
+    "AI_DEFAULT_PROVIDER": "openai",
+    "AI_OPENAI_ROUTINE_MODEL": "gpt-6-luna",
+    "AI_OPENAI_COMPLEX_MODEL": "gpt-6-luna",
+    "GOOGLE_CLIENT_ID": "835167251935-uv31077qlqatidou04dnd3475a0f9ub5.apps.googleusercontent.com",
+    "GOOGLE_CALLBACK_URL": "https://valora-api.jadhav-rushikesh-ggl.workers.dev/v1/auth/google/callback",
+    "MOBILE_AUTH_REDIRECT_URI": "valora://auth/callback"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "valora-db",
+      "database_id": "f44fab9c-e79e-421d-a822-53749eaa6219",
+      "migrations_dir": "d1_migrations"
+    }
+  ]
+}
