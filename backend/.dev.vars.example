@@ -1,0 +1,27 @@
+# Local-only development settings. Wrangler uses a local D1 database by default.
+APP_ENV=development
+DEV_AUTH_ENABLED=true
+DEV_USER_ID=00000000-0000-4000-8000-000000000001
+ALLOWED_ORIGINS=http://localhost:49812,http://localhost:5173
+JWT_ISSUER=http://localhost:8787
+# Select one cloud provider; keep keys in local .dev.vars or Worker secrets only.
+AI_DEFAULT_PROVIDER=openai
+# Optional model overrides.
+# AI_OPENAI_ROUTINE_MODEL=gpt-6-luna
+# AI_OPENAI_COMPLEX_MODEL=gpt-6-luna
+# AI_GEMINI_ROUTINE_MODEL=gemini-3.1-flash-lite
+# AI_GEMINI_COMPLEX_MODEL=gemini-3.5-flash
+# OPENAI_API_KEY=...
+# GEMINI_API_KEY=...
+# Generate a private ES256 key with `node scripts/generate-auth-key.mjs` and place its output here.
+# Never commit a real key. For deployment, add it with `wrangler secret put AUTH_SIGNING_PRIVATE_JWK`.
+# AUTH_SIGNING_PRIVATE_JWK={...generated private JWK...}
+# Provider callback URLs must exactly match the routes registered with each provider.
+# Google Web OAuth client. The backend web client is separate from the Android client.
+# GOOGLE_CLIENT_ID=835167251935-uv31077qlqatidou04dnd3475a0f9ub5.apps.googleusercontent.com
+# GOOGLE_CLIENT_SECRET=...
+# GOOGLE_CALLBACK_URL=http://localhost:8787/v1/auth/google/callback
+# MOBILE_AUTH_REDIRECT_URI=valora://auth/callback
+# OPENAI_CLIENT_ID=...
+# OPENAI_CALLBACK_URL=http://localhost:8787/v1/auth/openai/callback
+# MOBILE_AUTH_REDIRECT_URI=valora://auth/callback

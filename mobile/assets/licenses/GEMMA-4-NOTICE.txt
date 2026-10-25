@@ -1,0 +1,8 @@
+Gemma 4 E2B Instruct model weights, provided in LiteRT-LM format by LiteRT
+Community:
+https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/tree/1caa527c1e88b55f046fcd8d2b4265606680663d
+
+The model repository identifies its license as Apache License 2.0. The full
+license text is in GEMMA-4-APACHE-2.0.txt. Valora downloads the model artifact
+from this pinned repository revision at runtime; model weights are not included
+in the Valora APK.
