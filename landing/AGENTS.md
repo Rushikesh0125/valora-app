@@ -2,7 +2,7 @@
 
 ## Approved Valora direction
 
-Use warm sunlit kitchen imagery for the hero, cream editorial content, and a different sage-green food backdrop for the last download section. Include vegetarian food, chicken, fish and eggs across the page; do not imply the app is only for plant-based diets. Preserve the selected three-phone fan, bold sans typography and forest/cream identity. Motion follows `../LANDING_MOTION_DESIGN.md`; retain native scrolling and reduced-motion behavior. The original mobile prototype and Flutter app are separate projects.
+Use warm sunlit kitchen imagery for the hero, cream editorial content, and a different sage-green food backdrop for the last download section. Include vegetarian food, chicken, fish and eggs across the page; do not imply the app is only for plant-based diets. Preserve the selected three-phone fan, bold sans typography and forest/cream identity. Retain native scrolling and reduced-motion behavior. The original mobile prototype and Flutter app are separate projects.
 
 Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it.
 

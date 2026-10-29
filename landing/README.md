@@ -1,6 +1,6 @@
 # Valora landing page
 
-Responsive marketing page based on the approved kitchen/cream/sage design and `../LANDING_MOTION_DESIGN.md`.
+Responsive marketing page based on the approved kitchen/cream/sage design.
 
 ## Run locally
 
@@ -22,4 +22,4 @@ Images are generated assets inspired by the selected mock. Phone screens are ill
 
 ## Validation
 
-See `design-qa.md` and `docs/` for browser evidence. Automated tests were not added or run for this task. Production compilation was run successfully. Browser checks covered desktop, 390 px and 320 px layouts, the Play Store dialog, expanded editorial information and emulated reduced motion. APK file presence and packaged byte count were checked; installation on a phone was not performed.
+Automated tests were not added or run for this task. Production compilation was run successfully. Browser checks covered desktop, 390 px and 320 px layouts, the Play Store dialog, expanded editorial information and emulated reduced motion. APK file presence and packaged byte count were checked; installation on a phone was not performed.
