@@ -4,11 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run check:deployment && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:migrate": "wrangler d1 migrations apply valora-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply valora-db --remote"
+    "db:migrate": "wrangler d1 migrations apply valora-nebius-db --local",
+    "db:migrate:remote": "npm run check:deployment && wrangler d1 migrations apply valora-nebius-db --remote",
+    "check:deployment": "node scripts/check-deployment.mjs",
+    "verify:live": "node scripts/verify-live.mjs"
   },
   "dependencies": {
     "jose": "^6.2.13",

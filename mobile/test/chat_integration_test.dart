@@ -31,7 +31,7 @@ class ChatServer {
     }),
   );
   http.Response reply() => http.Response(
-    '{"data":{"text":"A practical suggestion.","provider":"openai","usage":{}}}',
+    '{"data":{"text":"A practical suggestion.","provider":"nebius","model":"nvidia/nemotron-3-super-120b-a12b","usage":{}}}',
     200,
   );
   SessionController session() =>
@@ -40,7 +40,8 @@ class ChatServer {
 }
 
 class LocalService extends ValoraAiService {
-  LocalService(super.api, {this.fail = false, this.installed = false});
+  LocalService(super.api, {this.fail = false, this.installed = false})
+    : super(onDeviceEnabled: true, localOnly: true);
   final bool fail, installed;
   int localCalls = 0;
   @override
@@ -57,7 +58,58 @@ class LocalService extends ValoraAiService {
   }
 }
 
+class NebiusService extends ValoraAiService {
+  NebiusService(super.api);
+  int localCalls = 0;
+  @override
+  Future<AiReply?> respondLocally({
+    required AiTask task,
+    required String prompt,
+    String? context,
+  }) async {
+    localCalls++;
+    throw StateError('Nebius mode must never initialize a local model');
+  }
+}
+
 void main() {
+  test(
+    'Nebius defaults bypass local inference and honor consent revocation',
+    () async {
+      final server = ChatServer();
+      final service = NebiusService(server.api);
+      addTearDown(server.api.close);
+      for (final complexity in AiComplexity.values) {
+        final reply = await service.respond(
+          task: AiTask.conversation,
+          complexity: complexity,
+          prompt: 'A lunch idea',
+        );
+        expect(reply.source, 'nebius');
+        expect(reply.model, 'nvidia/nemotron-3-super-120b-a12b');
+      }
+      server.consent = false;
+      await expectLater(
+        service.respond(
+          task: AiTask.conversation,
+          complexity: AiComplexity.routine,
+          prompt: 'Another idea',
+        ),
+        throwsA(
+          isA<BackendException>().having(
+            (e) => e.message,
+            'code',
+            'cloud_ai_consent_required',
+          ),
+        ),
+      );
+      expect(server.requests.length, 2);
+      expect(service.localCalls, 0);
+      expect(service.onDeviceEnabled, false);
+      expect(service.localOnly, false);
+    },
+  );
+
   testWidgets(
     'busy send preserves the next draft and exposes retry/settings controls',
     (tester) async {
@@ -81,7 +133,12 @@ void main() {
       expect(find.byTooltip('AI settings'), findsOneWidget);
       server.pending!.complete(server.reply());
       await tester.pumpAndSettle();
-      expect(find.text('OpenAI · cloud'), findsOneWidget);
+      expect(
+        find.text(
+          'NVIDIA Nemotron via Nebius · nvidia/nemotron-3-super-120b-a12b',
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -94,6 +151,8 @@ void main() {
       for (final entry in {
         "What's in my pantry?": ChatFocus.pantry,
         'Show my next plan': ChatFocus.plan,
+        'Show my meal plan for today': ChatFocus.plan,
+        'What am I eating today?': ChatFocus.plan,
         'What allergies do you have saved?': ChatFocus.rules,
         'What is my budget?': ChatFocus.limits,
         'Show my meal preferences': ChatFocus.profile,
@@ -250,7 +309,7 @@ void main() {
   });
 
   test(
-    'installed local model answers routine messages with cloud disabled; complex requests bypass it',
+    'explicit local-only mode answers routine and complex requests without cloud',
     () async {
       final server = ChatServer()..consent = false;
       final service = LocalService(server.api, installed: true);
@@ -260,15 +319,13 @@ void main() {
         prompt: 'lunch idea',
       );
       expect(result.source, 'on_device_gemma');
-      await expectLater(
-        service.respond(
-          task: AiTask.conversation,
-          complexity: AiComplexity.complex,
-          prompt: 'compare these choices',
-        ),
-        throwsA(isA<BackendException>()),
+      final complex = await service.respond(
+        task: AiTask.conversation,
+        complexity: AiComplexity.complex,
+        prompt: 'compare these choices',
       );
-      expect(service.localCalls, 1);
+      expect(complex.source, 'on_device_gemma');
+      expect(service.localCalls, 2);
       expect(server.requests, isEmpty);
       server.api.close();
     },

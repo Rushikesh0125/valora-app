@@ -10,6 +10,12 @@ ChatFocus? savedChatFocus(String text) {
       .replaceAll(RegExp(r'\s+'), ' ')
       .replaceFirst(RegExp(r'^please '), '')
       .replaceFirst(RegExp(r' please$'), '');
+  if (RegExp(
+        r"^(?:(?:show|open|view)(?: me)? )?(?:my |the )?(?:today's (?:meal )?plan|(?:meal )?plan (?:for )?today)$",
+      ).hasMatch(value) ||
+      value == 'what am i eating today' ||
+      value == 'what is my meal plan for today')
+    return ChatFocus.plan;
   const subjects = <ChatFocus, String>{
     ChatFocus.pantry: r'(?:pantry|fridge|ingredients at home)',
     ChatFocus.rules:

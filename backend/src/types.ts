@@ -1,4 +1,4 @@
-export type Env = Omit<Cloudflare.Env, "APP_ENV" | "ALLOWED_ORIGINS" | "AI_DEFAULT_PROVIDER" | "AI_OPENAI_ROUTINE_MODEL" | "AI_OPENAI_COMPLEX_MODEL"> & {
+export type Env = Omit<Cloudflare.Env, "APP_ENV" | "ALLOWED_ORIGINS" | "NEBIUS_API_KEY" | "AI_NEBIUS_MODEL" | "AI_DEFAULT_PROVIDER" | "AI_OPENAI_ROUTINE_MODEL" | "AI_OPENAI_COMPLEX_MODEL"> & {
   APP_ENV: string;
   ALLOWED_ORIGINS?: string;
   DEV_AUTH_ENABLED?: string;
@@ -13,7 +13,9 @@ export type Env = Omit<Cloudflare.Env, "APP_ENV" | "ALLOWED_ORIGINS" | "AI_DEFAU
   MOBILE_AUTH_REDIRECT_URI?: string;
   OPENAI_API_KEY?: string;
   GEMINI_API_KEY?: string;
-  AI_DEFAULT_PROVIDER?: "openai" | "gemini";
+  AI_DEFAULT_PROVIDER?: "openai" | "gemini" | "nebius";
+  NEBIUS_API_KEY?: string;
+  AI_NEBIUS_MODEL?: string;
   AI_OPENAI_ROUTINE_MODEL?: string;
   AI_OPENAI_COMPLEX_MODEL?: string;
   AI_GEMINI_ROUTINE_MODEL?: string;

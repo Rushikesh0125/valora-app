@@ -1,8 +1,11 @@
+import 'tag_suggestions.dart';
+import 'pantry_voice_command.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'food_records.dart';
+import 'first_day_planner.dart';
 import 'chat_router.dart';
 import 'chat_action.dart';
 import 'models.dart';
@@ -67,6 +70,171 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<Map<String, dynamic>>? pendingContextActions;
+  String _contextBase = '', contextActionMessage = '';
+  bool contextActionBusy = false, _contextApplied = false;
+  String _contextSnapshot() => jsonEncode({
+    'profile': profile.toJson(),
+    'facts': _memory.map((k, v) => MapEntry(k, v['value'])),
+    'paused': pausedFacts.toList(),
+  });
+  void cancelContextActions() {
+    if (contextActionBusy || _contextApplied) return;
+    pendingContextActions = null;
+    contextActionMessage = 'Kept your saved preferences.';
+    notifyListeners();
+  }
+
+  String _canonicalFood(String value) {
+    for (final entry in foodSuggestions) {
+      if (entry.isExact(value)) return entry.id;
+    }
+    return value.toLowerCase().trim();
+  }
+
+  void _contextFact(String key, String label, String value) {
+    final old = _memory[key];
+    _memory[key] = {
+      'id': old?['id'] ?? 'draft:$key',
+      'key': key,
+      'label': label,
+      'value': value,
+      'source': 'Reported in chat · confirmed by you',
+      'safetyRelevant': false,
+      'status': 'active',
+    };
+    pausedFacts.remove(key);
+    _removedMemoryKeys.remove(key);
+  }
+
+  Future<void> confirmContextActions() async {
+    final actions = pendingContextActions;
+    if (actions == null || contextActionBusy) return;
+    if (!_contextApplied && _contextBase != _contextSnapshot()) {
+      pendingContextActions = null;
+      contextActionMessage =
+          'Your saved data changed. Send the request again to review the latest values.';
+      notifyListeners();
+      return;
+    }
+    if (backendApi != null && (!signedIn || !accountLoaded || !onboarded))
+      return;
+    final epoch = _accountEpoch;
+    contextActionBusy = true;
+    notifyListeners();
+    if (!_contextApplied) {
+      _contextApplied = true;
+      firstDayPlanner?.preferencesChanged();
+      final symptoms = <String>[];
+      final now = DateTime.now().toUtc(),
+          expires = DateTime.now().toUtc().add(const Duration(hours: 24));
+      const builtin = {
+        'peanut': 'Peanuts',
+        'tree nuts': 'Tree nuts',
+        'milk': 'Milk',
+        'egg': 'Eggs',
+        'wheat': 'Wheat',
+      };
+      for (final action in actions) {
+        final kind = action['kind'] as String,
+            value = action['value'] as String;
+        if (kind == 'temporary_health') {
+          symptoms.add(value);
+          continue;
+        }
+        if (kind == 'meal_style') {
+          _contextFact(
+            'meal_style',
+            'Comfort meal preference (24 hours)',
+            jsonEncode({
+              'style': value,
+              'reportedAt': now.toIso8601String(),
+              'expiresAt': expires.toIso8601String(),
+            }),
+          );
+          continue;
+        }
+        if (kind == 'eating_pattern') {
+          profile.pattern = value;
+          continue;
+        }
+        if (kind == 'add_cuisine') {
+          profile.cuisines.remove('Anything');
+          profile.cuisines.add(value);
+          continue;
+        }
+        if (kind == 'remove_cuisine') {
+          profile.cuisines.remove(value);
+          if (profile.cuisines.isEmpty) profile.cuisines.add('Anything');
+          continue;
+        }
+        if (kind == 'avoid_food' || kind == 'allow_food') {
+          final items = profile.exclusions
+              .split(RegExp(r'[,;]'))
+              .map((v) => v.trim())
+              .where((v) => v.isNotEmpty)
+              .toList();
+          items.removeWhere((v) => _canonicalFood(v) == _canonicalFood(value));
+          if (kind == 'avoid_food') items.add(value);
+          profile.exclusions = items.join(', ');
+          continue;
+        }
+        if (kind == 'add_allergy' || kind == 'remove_allergy') {
+          final standard = builtin[value.toLowerCase()];
+          if (standard != null) {
+            if (kind == 'add_allergy')
+              profile.allergies.add(standard);
+            else
+              profile.allergies.remove(standard);
+          } else {
+            final items = profile.otherAllergy
+                .split(',')
+                .map((v) => v.trim())
+                .where(
+                  (v) => v.isNotEmpty && v.toLowerCase() != value.toLowerCase(),
+                )
+                .toList();
+            if (kind == 'add_allergy') items.add(value);
+            profile.otherAllergy = items.join(', ');
+            if (items.isEmpty)
+              profile.allergies.remove('Other');
+            else
+              profile.allergies.add('Other');
+          }
+        }
+      }
+      if (symptoms.isNotEmpty)
+        _contextFact(
+          'temporary_health',
+          'User-reported symptoms (24 hours)',
+          'Reported: ${symptoms.join(', ')}. Recorded ${now.toIso8601String()}. Expires ${expires.toIso8601String()}. Not a diagnosis.',
+        );
+      invalidate();
+      _revision++;
+      notifyListeners();
+    }
+    await saveAccountData();
+    if (_disposed || epoch != _accountEpoch) return;
+    contextActionBusy = false;
+    if (saveError.isNotEmpty || hasUnsavedChanges) {
+      contextActionMessage = 'Changed here, but not saved yet. Retry saving.';
+    } else {
+      pendingContextActions = null;
+      _contextApplied = false;
+      contextActionMessage = backendApi == null
+          ? 'Updated in this preview.'
+          : 'Saved your context. My Plan is refreshing with your food preferences.';
+    }
+    notifyListeners();
+  }
+
+  FirstDayPlanner? firstDayPlanner;
+  bool firstPlanConsent = false;
+  void setFirstPlanConsent(bool enabled) {
+    firstPlanConsent = enabled;
+    notifyListeners();
+  }
+
   Profile profile = Profile();
   final pantry = <PantryItem>[
     const PantryItem(id: 1, name: 'Rice', amount: '~1 kg'),
@@ -120,8 +288,12 @@ class SessionController extends ChangeNotifier {
   }
 
   void clearChat() {
-    if (aiBusy || chatActionBusy) return;
+    if (aiBusy || chatActionBusy || contextActionBusy) return;
     pendingChatAction = null;
+    pendingContextActions = null;
+    _contextApplied = false;
+    contextActionBusy = false;
+    contextActionMessage = '';
     chatActionApplied = false;
     chatActionMessage = '';
     chat.clear();
@@ -136,7 +308,11 @@ class SessionController extends ChangeNotifier {
     final prompt = _failedPrompt;
     if (prompt == null || aiBusy) return;
     if (chat.isNotEmpty && chat.last.isError) chat.removeLast();
-    await _submitAiConversation(prompt, retry: true);
+    if (firstDayPlanner != null && _isMealChangePrompt(prompt)) {
+      await _proposeMealChange(prompt, retry: true);
+    } else {
+      await _submitAiConversation(prompt, retry: true);
+    }
   }
 
   String _conversationContext() {
@@ -372,6 +548,12 @@ class SessionController extends ChangeNotifier {
       }
       onboarded = savedProfile != null && restored.acknowledged;
       accountLoaded = true;
+      if (googleSignIn != null &&
+          aiService != null &&
+          firstDayPlanner == null) {
+        firstDayPlanner = FirstDayPlanner(api)..addListener(notifyListeners);
+        if (onboarded) unawaited(firstDayPlanner!.refresh());
+      }
       _revision = _savedRevision = 0;
       quoteStale = true;
       if (foodState == null) {
@@ -471,7 +653,8 @@ class SessionController extends ChangeNotifier {
         final retained = snapshot.map((f) => f['key'] as String).toSet();
         for (final entry in _memory.entries.toList()) {
           if (!retained.contains(entry.key)) {
-            await api.deleteMemory(entry.value['id'] as String);
+            if (!(entry.value['id'] as String).startsWith('draft:'))
+              await api.deleteMemory(entry.value['id'] as String);
             if (_disposed || epoch != _accountEpoch) return;
             _memory.remove(entry.key);
           }
@@ -483,6 +666,7 @@ class SessionController extends ChangeNotifier {
               response['data'] as Map<String, dynamic>;
         }
         _savedRevision = revision;
+        if (_savedRevision == _revision) firstDayPlanner?.preferencesSaved();
       }
     } catch (error) {
       if (!_disposed && epoch == _accountEpoch) {
@@ -515,7 +699,14 @@ class SessionController extends ChangeNotifier {
       key.startsWith('allergy:');
 
   void _clearAccountState() {
+    firstDayPlanner?.dispose();
+    firstDayPlanner = null;
+    firstPlanConsent = false;
     pendingChatAction = null;
+    pendingContextActions = null;
+    _contextApplied = false;
+    contextActionBusy = false;
+    contextActionMessage = '';
     chatActionApplied = chatActionBusy = false;
     chatActionMessage = '';
     _accountEpoch++;
@@ -564,6 +755,7 @@ class SessionController extends ChangeNotifier {
 
   @override
   void dispose() {
+    firstDayPlanner?.dispose();
     _disposed = true;
     _accountEpoch++;
     _saveTimer?.cancel();
@@ -617,7 +809,10 @@ class SessionController extends ChangeNotifier {
 
   void updateProfile(VoidCallback edit, {bool affectsPlan = true}) {
     edit();
-    if (onboarded && affectsPlan) invalidate();
+    if (onboarded && affectsPlan) {
+      invalidate();
+      firstDayPlanner?.preferencesChanged();
+    }
     _queueAccountSave();
     notifyListeners();
   }
@@ -670,6 +865,8 @@ class SessionController extends ChangeNotifier {
         return;
     }
     onboarded = true;
+    if (firstDayPlanner != null)
+      unawaited(firstDayPlanner!.refresh(enableConsent: firstPlanConsent));
     quoteStale = profile.coverage != 'Breakfast, lunch & dinner';
     notifyListeners();
   }
@@ -800,6 +997,58 @@ class SessionController extends ChangeNotifier {
     return changed ? null : foodEditError;
   }
 
+  String? applyPantryBatch(List<PantryBatchEdit> edits) {
+    if (edits.isEmpty || edits.length > 20)
+      return 'Review between 1 and 20 pantry changes.';
+    final ids = <int>{};
+    final names = <String>{};
+    for (final edit in edits) {
+      final c = edit.command;
+      if (!names.add(c.name.toLowerCase().trim()))
+        return 'The same item appears twice. Preview a combined amount.';
+      if (c.name.trim().isEmpty ||
+          c.name.length > 200 ||
+          (!c.remove &&
+              (c.amount == null ||
+                  c.amount!.trim().isEmpty ||
+                  c.amount!.length > 200)))
+        return 'Every added item needs a name and amount.';
+      if (edit.id != null &&
+          (!ids.add(edit.id!) || !pantry.any((p) => p.id == edit.id)))
+        return 'A pantry item changed or appears twice. Preview again.';
+      if (c.remove && edit.id == null)
+        return 'A removed item must exist in your pantry.';
+    }
+    final additions = edits
+        .where((e) => !e.command.remove && e.id == null)
+        .length;
+    final removals = edits.where((e) => e.command.remove).length;
+    if (pantry.length + additions - removals > 500 ||
+        _nextItem + additions > 2147483647)
+      return 'Your pantry has reached its item limit.';
+    final changed = _editFood(() {
+      for (final edit in edits) {
+        if (edit.command.remove) {
+          pantry.removeWhere((p) => p.id == edit.id);
+          continue;
+        }
+        final item = PantryItem(
+          id: edit.id ?? _nextItem++,
+          name: edit.command.name.trim(),
+          amount: edit.command.amount!.trim(),
+          kind: edit.kind,
+        );
+        final index = pantry.indexWhere((p) => p.id == edit.id);
+        if (index < 0)
+          pantry.add(item);
+        else
+          pantry[index] = item;
+      }
+      invalidate();
+    });
+    return changed ? null : foodEditError;
+  }
+
   String? removePantry(int id) {
     final changed = _editFood(() {
       pantry.removeWhere((p) => p.id == id);
@@ -854,7 +1103,20 @@ class SessionController extends ChangeNotifier {
 
   Future<void> submitChat(String text) async {
     final clean = text.trim();
-    if (clean.isEmpty || aiBusy || chatActionBusy) return;
+    if (clean.isEmpty || aiBusy || chatActionBusy || contextActionBusy) return;
+    if (pendingContextActions != null ||
+        pendingChatAction != null ||
+        firstDayPlanner?.proposal != null) {
+      conversation = true;
+      chat.add(
+        const ChatEntry(
+          'Confirm or cancel the current proposed change first.',
+          false,
+        ),
+      );
+      notifyListeners();
+      return;
+    }
     final action = parseChatAction(clean);
     if (action != null) {
       conversation = true;
@@ -879,6 +1141,15 @@ class SessionController extends ChangeNotifier {
       focus = saved;
       conversation = false;
       notifyListeners();
+      return;
+    }
+    if (firstDayPlanner != null &&
+        _isMealChangePrompt(clean) &&
+        !RegExp(
+          r'\b(fever|cold|cough|allerg\w*|avoid|remember)\b',
+          caseSensitive: false,
+        ).hasMatch(clean)) {
+      await _proposeMealChange(clean);
       return;
     }
     if (aiService != null) {
@@ -908,14 +1179,7 @@ class SessionController extends ChangeNotifier {
     googleSignIn = auth;
     cloudAiConsent = null;
     modelInstalled = false;
-    aiService = ValoraAiService(
-      api,
-      onDeviceEnabled:
-          !kIsWeb &&
-          defaultTargetPlatform != TargetPlatform.windows &&
-          defaultTargetPlatform != TargetPlatform.linux &&
-          defaultTargetPlatform != TargetPlatform.macOS,
-    );
+    aiService = ValoraAiService(api, onDeviceEnabled: false, localOnly: false);
     notifyListeners();
     _restoreAuthSession(auth);
   }
@@ -966,10 +1230,8 @@ class SessionController extends ChangeNotifier {
     previous?.close();
     aiService = ValoraAiService(
       backendApi!,
-      onDeviceEnabled:
-          !kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.android ||
-              defaultTargetPlatform == TargetPlatform.iOS),
+      onDeviceEnabled: false,
+      localOnly: false,
     );
     await loadAccountData();
   }
@@ -1075,7 +1337,7 @@ class SessionController extends ChangeNotifier {
       if (_disposed || epoch != _accountEpoch) return;
       cloudAiConsent = consent;
       aiSettingsMessage = enabled
-          ? 'Cloud AI enabled. Prompts sent to the configured AI provider are not stored by Valora.'
+          ? 'NVIDIA Nemotron via Nebius enabled. Messages and selected context are sent through the Valora server to Nebius.'
           : 'Cloud AI disabled.';
     } catch (e) {
       if (_disposed || epoch != _accountEpoch) return;
@@ -1129,6 +1391,78 @@ class SessionController extends ChangeNotifier {
     _ => 'Could not load AI settings. Check the API connection and try again.',
   };
 
+  bool _isMealChangePrompt(String text) =>
+      RegExp(
+        r'\b(tonight|for dinner|for lunch|for breakfast|swap|replace|change.*meal|change.*dinner|italian|mexican|chinese)\b',
+        caseSensitive: false,
+      ).hasMatch(text) &&
+      RegExp(
+        r'\b(eat|want|swap|replace|change|instead|make|plan|something|have)\b',
+        caseSensitive: false,
+      ).hasMatch(text);
+
+  Future<void> _proposeMealChange(String prompt, {bool retry = false}) async {
+    final planner = firstDayPlanner;
+    if (planner == null || aiBusy || planner.changeBusy) return;
+    if (planner.proposal != null) {
+      conversation = true;
+      chat.add(
+        const ChatEntry(
+          'Confirm or cancel the proposed meal change first.',
+          false,
+        ),
+      );
+      notifyListeners();
+      return;
+    }
+    final epoch = _accountEpoch;
+    conversation = true;
+    aiBusy = true;
+    aiError = '';
+    _failedPrompt = null;
+    if (!retry) chat.add(ChatEntry(prompt, true));
+    notifyListeners();
+    try {
+      final result = await planner.proposeChange(prompt);
+      if (_disposed || epoch != _accountEpoch) return;
+      final message = switch (result?['status']) {
+        'proposal' =>
+          'Here is a change for your ${result!['meal']}. Your saved meal stays the same until you confirm.',
+        'consent_required' =>
+          'Enable Nebius consent in AI settings before requesting a meal change.',
+        'not_ready' =>
+          'Prepare your first meal plan in My Plan first, then ask me to change a meal.',
+        'plan_outdated' =>
+          'Your saved plan is from an earlier date. Prepare today’s meals in My Plan before changing dinner.',
+        'review_required' =>
+          'Your saved food restrictions need review before I can suggest a suitable change. Open My Plan for details.',
+        'already_matches' =>
+          'Your saved meal already matches this choice. Open My Plan to review it.',
+        'no_meals_remaining' =>
+          'There are no remaining meal slots to change today.',
+        'clarification' =>
+          'Which meal and dish would you like? I can only suggest recipes matching your saved food restrictions and cooking time.',
+        _ => 'Your plan or preferences changed. Review My Plan and try again.',
+      };
+      chat.add(ChatEntry(message, false));
+    } catch (_) {
+      if (_disposed || epoch != _accountEpoch) return;
+      _failedPrompt = prompt;
+      chat.add(
+        const ChatEntry(
+          'Could not prepare a meal change. Your existing plan is unchanged. Please retry.',
+          false,
+          isError: true,
+        ),
+      );
+    } finally {
+      if (!_disposed && epoch == _accountEpoch) {
+        aiBusy = false;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> submitAiChat(String text) => submitChat(text);
 
   Future<void> _submitAiConversation(String text, {bool retry = false}) async {
@@ -1153,8 +1487,17 @@ class SessionController extends ChangeNotifier {
         context: _conversationContext(),
       );
       if (_disposed || epoch != _accountEpoch) return;
+      if (reply.contextActions?.isNotEmpty == true) {
+        pendingContextActions = reply.contextActions;
+        _contextBase = _contextSnapshot();
+        _contextApplied = false;
+        contextActionMessage =
+            'Review what Valora will remember. Health notes and comfort preferences expire after 24 hours. Allergies and food restrictions stay saved until you change them.';
+      }
       aiReply = reply.source;
-      chat.add(ChatEntry(reply.text, false, source: reply.source));
+      chat.add(
+        ChatEntry(reply.text, false, source: reply.source, model: reply.model),
+      );
       _aiHistory.addAll([ChatEntry(clean, true), ChatEntry(reply.text, false)]);
       if (_aiHistory.length > 8)
         _aiHistory.removeRange(0, _aiHistory.length - 8);
@@ -1170,11 +1513,17 @@ class SessionController extends ChangeNotifier {
         'on_device_ai_unsupported_platform' =>
           'On-device Gemma testing is available in the Android and iOS apps.',
         'cloud_ai_consent_required' =>
-          'To get an AI reply, enable cloud AI in AI settings or download Gemma for routine requests.',
+          'To get a Nemotron reply, enable Nebius cloud AI in AI settings, then retry.',
         'local_ai_failed_consent_required' =>
           'Gemma could not answer on this device. Enable cloud AI in AI settings to use the fallback, then retry.',
         'ai_provider_unavailable' =>
           'Cloud AI is unavailable. Check the provider setup or retry shortly.',
+        'ai_provider_timeout' =>
+          'Nebius took too long to reply. Your message is still here; retry shortly.',
+        'ai_provider_rate_limited' =>
+          'Nebius is busy. Wait a moment and retry.',
+        'ai_provider_invalid_response' =>
+          'Nebius returned an incomplete or invalid answer. Please retry.',
         'ai_provider_request_failed' =>
           'The cloud provider could not complete this request. Please retry shortly.',
         'unauthorized' => 'Your sign-in expired. Sign in again to continue.',
@@ -1292,6 +1641,7 @@ class SessionController extends ChangeNotifier {
   }
 
   void pauseFact(String key) {
+    if (onboarded) firstDayPlanner?.preferencesChanged();
     if (!pausedFacts.remove(key)) pausedFacts.add(key);
     invalidate();
     _queueAccountSave();
@@ -1299,6 +1649,7 @@ class SessionController extends ChangeNotifier {
   }
 
   void removeFact(String key) {
+    if (onboarded) firstDayPlanner?.preferencesChanged();
     if (key.startsWith('allergy:')) {
       final allergy = key.substring(8);
       profile.allergies.remove(allergy);

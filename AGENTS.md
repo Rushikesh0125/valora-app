@@ -7,3 +7,5 @@ The baseline application configuration still references canonical Valora product
 Do not copy production secrets, local databases, build outputs or dependencies from the canonical workspace. Configure this variant independently.
 
 Preserve baseline provenance and document hackathon changes honestly. Do not claim Nebius inference is implemented until a real runtime integration exists and has been verified.
+
+Explicit user exception (25 October 2026): reuse canonical Valora Google OAuth client ID and client secret for this variant. This exception is limited to Google OAuth credentials. Keep the Nebius callback URI, Worker, database and signing keys independent; preserve the canonical callback when registering the new one.

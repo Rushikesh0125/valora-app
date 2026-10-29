@@ -1,0 +1,17 @@
+/** Small, source-reviewed evidence registry. Summaries are original, not article copies.
+ * Retrieved 2026-10-29. No entry is a clinical prescription or allergen override.
+ */
+export const evidence = [
+  {id:'predimed-2018',title:'PREDIMED reanalysis (2018)',doi:'10.1056/NEJMoa1800389',url:'https://pubmed.ncbi.nlm.nih.gov/29897866/',design:'Randomized dietary trial, revised analysis',population:'Older Spanish adults at elevated cardiovascular risk',finding:'The revised PREDIMED analysis supports studying Mediterranean dietary patterns for cardiovascular prevention in its trial population.',limitations:'The 2018 paper addresses allocation irregularities in the earlier report. It does not validate an individual recipe, apply to every age or condition, or justify nuts for a person with nut allergy.',topic:'dietary-patterns',clinicalOnly:false},
+  {id:'dash-1997',title:'DASH dietary-pattern trial (1997)',doi:'10.1056/NEJM199704173361601',url:'https://pubmed.ncbi.nlm.nih.gov/9099655/',design:'Randomized controlled feeding trial',population:'459 adults with elevated or mildly elevated blood pressure',finding:'A tested dietary pattern lowered blood pressure during a controlled eight-week intervention.',limitations:'Short controlled feeding study; not a personalized treatment or evidence that any one meal lowers blood pressure. Dairy-containing study foods cannot override milk allergy or vegan preferences.',topic:'blood-pressure',clinicalOnly:true},
+  {id:'borghi-2002',title:'Recurrent calcium-oxalate stone diet trial (2002)',doi:'10.1056/NEJMoa010369',url:'https://www.nejm.org/doi/full/10.1056/NEJMoa010369',design:'Randomized dietary trial',population:'Men with recurrent calcium-oxalate stones and idiopathic hypercalciuria',finding:'The trial compared dietary strategies for recurrent stones in a narrowly defined clinical population.',limitations:'Do not generalize to unknown stone types, women, children, kidney impairment or a user reporting only “kidney stone”. Requires clinician assessment; no automatic nutrient, fluid or calcium targets.',topic:'kidney-stones',clinicalOnly:true},
+  {id:'steps-2022',title:'Daily steps and mortality meta-analysis (2022)',doi:'10.1016/S2468-2667(21)00302-9',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC9289978/',design:'Meta-analysis of prospective observational cohorts',population:'Adults from 15 cohorts',finding:'Higher step counts were associated with lower mortality; associations varied with age.',limitations:'Observational association does not prove causality or establish a safe personal step target. Do not extrapolate to children, injury, pregnancy or exercise contraindications. Activity planning needs age, baseline activity and safety information.',topic:'activity',clinicalOnly:false},
+] as const;
+
+export function researchReply(question:string):string|null {
+  if(!/\b(research|evidence|studies|study|sources|papers)\b/i.test(question))return null;
+  const topic=/kidney|stone/i.test(question)?'kidney-stones':/pressure|dash|hypertension/i.test(question)?'blood-pressure':/walk|steps|activity|exercise/i.test(question)?'activity':'dietary-patterns';
+  const item=evidence.find(e=>e.topic===topic)!;
+  return `**Research relevant to your question**\n\n${item.finding}\n\n${item.limitations}\n\nSource: [${item.title}](${item.url}). This evidence does not establish a personal prescription for you.`;
+}
+export const mealEvidence=evidence.filter(e=>!e.clinicalOnly&&e.topic==='dietary-patterns');

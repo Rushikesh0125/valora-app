@@ -1,0 +1,6 @@
+# Copy to ignored key.properties and generate a separate release keystore.
+# storeFile is relative to mobile/android.
+storeFile=nebius-release.jks
+storePassword=REPLACE_WITH_PRIVATE_PASSWORD
+keyAlias=valora-nebius
+keyPassword=REPLACE_WITH_PRIVATE_PASSWORD

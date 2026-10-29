@@ -19,7 +19,7 @@ class AiSettingsPage extends StatelessWidget {
           const Heading(
             'Choose how Valora uses AI',
             subtitle:
-                'Test mode: all chat requests use Gemma on this device. Cloud AI is not used.',
+                'AI conversations use NVIDIA Nemotron via Nebius after you enable cloud consent.',
           ),
           if (session.backendApi == null)
             const InfoNote(
@@ -32,12 +32,12 @@ class AiSettingsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Cloud AI · unavailable in test mode',
+                    'NVIDIA Nemotron via Nebius',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Chat is currently configured to use Gemma on this device only. Your cloud AI consent setting is unchanged, but chat will not send requests to a cloud provider.',
+                    'When enabled, your messages and bounded conversation history are sent through the Valora server to Nebius Token Factory. Saved food restrictions always filter meal choices on the server; Nebius receives eligible recipe candidates. First-day planning uses the food preferences you confirm during onboarding. Saved health fields are not automatically included; anything you type is sent. You can disable consent at any time.',
                     style: TextStyle(
                       fontSize: 11,
                       height: 1.5,
@@ -132,7 +132,7 @@ class AiSettingsPage extends StatelessWidget {
             ),
           ] else
             const InfoNote(
-              'On-device Gemma testing is available in the Android and iOS apps. Chat needs the local model installed.',
+              'This variant uses Nebius cloud inference. No local model download is required. Saved-state questions still work without cloud AI.',
               amber: true,
             ),
           if (session.aiSettingsMessage.isNotEmpty)

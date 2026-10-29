@@ -82,6 +82,6 @@ Report/document extraction and Swiggy are not connected. Their data must not be 
 
 ## Chat validation
 
-Four backend provider-boundary tests verify server-side consent, OpenAI storage-disabled requests, Gemini context/instruction handling, and missing credentials without live provider calls. The mobile suite covers saved reads, context/history, fallback, retry, draft preservation and logout isolation. Provider choice/cost notes are in `../AI_PROVIDER_COMPARISON.md`. Current configured defaults remain as documented in source; recommending a model does not change deployment configuration automatically.
+Four backend provider-boundary tests verify server-side consent, OpenAI storage-disabled requests, Gemini context/instruction handling, and missing credentials without live provider calls. The mobile suite covers saved reads, context/history, fallback, retry, draft preservation and logout isolation. Current configured defaults remain as documented in source; recommending a model does not change deployment configuration automatically.
 
 Selected cloud model: `gpt-6-luna` for both routine and complex requests, with reasoning effort `none` for the current conversational MVP. OpenAI credentials must be stored as the `OPENAI_API_KEY` Worker secret.

@@ -13,10 +13,10 @@ class GoogleSignInService {
   final String baseUrl;
   final http.Client _client;
   static const _storage = FlutterSecureStorage();
-  static const _accessKey = 'valora.access_token';
-  static const _refreshKey = 'valora.refresh_token';
-  static const _expiryKey = 'valora.access_expiry';
-  static const _stateKey = 'valora.oauth_state';
+  static const _accessKey = 'valoranebius.access_token';
+  static const _refreshKey = 'valoranebius.refresh_token';
+  static const _expiryKey = 'valoranebius.access_expiry';
+  static const _stateKey = 'valoranebius.oauth_state';
   Future<String?>? _refreshing;
   int _epoch = 0;
   bool _loggingOut = false;
@@ -50,7 +50,9 @@ class GoogleSignInService {
 
   Future<bool> handleCallback(Uri uri) async {
     final epoch = _epoch;
-    if (uri.scheme != 'valora' || uri.host != 'auth' || uri.path != '/callback')
+    if (uri.scheme != 'valoranebius' ||
+        uri.host != 'auth' ||
+        uri.path != '/callback')
       return false;
     final expectedState = await _storage.read(key: _stateKey);
     await _storage.delete(key: _stateKey);

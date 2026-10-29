@@ -124,11 +124,18 @@ class DayDraft {
 }
 
 class ChatEntry {
-  const ChatEntry(this.text, this.isUser, {this.isError = false, this.source});
+  const ChatEntry(
+    this.text,
+    this.isUser, {
+    this.isError = false,
+    this.source,
+    this.model,
+  });
   final String text;
   final bool isUser;
   final bool isError;
   final String? source;
+  final String? model;
 }
 
 class SavedFact {

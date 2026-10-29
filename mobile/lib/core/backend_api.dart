@@ -17,6 +17,45 @@ class BackendApi {
   final void Function()? onUnauthorized;
   final http.Client _client;
 
+  Future<Map<String, dynamic>> interpretPantry(String transcript) async =>
+      (await _request(
+            'POST',
+            '/v1/pantry/interpret',
+            body: {'transcript': transcript},
+            timeout: const Duration(seconds: 60),
+          ))['data']
+          as Map<String, dynamic>;
+
+  Future<Map<String, dynamic>> getFirstDayPlan() async =>
+      (await _request('GET', '/v1/first-day-plan'))['data']
+          as Map<String, dynamic>;
+  Future<Map<String, dynamic>> generateFirstDayPlan({
+    bool retry = false,
+    bool confirmedPreferences = false,
+  }) async =>
+      (await _request(
+            'POST',
+            '/v1/first-day-plan',
+            body: {
+              'retry': retry,
+              'confirmedPreferences': confirmedPreferences,
+            },
+            timeout: const Duration(seconds: 60),
+          ))['data']
+          as Map<String, dynamic>;
+
+  Future<Map<String, dynamic>> proposeMealChange(String request) async =>
+      (await _request(
+            'POST',
+            '/v1/meal-plan/proposals',
+            body: {'request': request},
+            timeout: const Duration(seconds: 60),
+          ))['data']
+          as Map<String, dynamic>;
+  Future<Map<String, dynamic>> confirmMealChange(String id) async =>
+      (await _request('POST', '/v1/meal-plan/proposals/$id/confirm'))['data']
+          as Map<String, dynamic>;
+
   Future<Map<String, dynamic>?> getProfile() => _get('/v1/profile');
   Future<Map<String, dynamic>> getFoodState() async =>
       (await _request('GET', '/v1/food-state'))['data'] as Map<String, dynamic>;

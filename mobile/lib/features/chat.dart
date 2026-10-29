@@ -1,9 +1,13 @@
+import 'voice_chat.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import 'ai_settings.dart';
+import 'first_day_plan.dart';
 import 'onboarding.dart' show ProfileRows;
 
 class ChatPage extends StatefulWidget {
@@ -24,6 +28,7 @@ class _ChatPageState extends State<ChatPage> {
   final input = TextEditingController();
   final scroll = ScrollController();
   int _lastCount = 0;
+  String _lastRequest = '';
   @override
   void dispose() {
     input.dispose();
@@ -34,12 +39,14 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void didUpdateWidget(covariant ChatPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_lastCount != widget.session.chat.length) {
+    if (_lastCount != widget.session.chat.length ||
+        _lastRequest != widget.session.request) {
       _lastCount = widget.session.chat.length;
+      _lastRequest = widget.session.request;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && scroll.hasClients)
           scroll.animateTo(
-            scroll.position.maxScrollExtent,
+            widget.session.conversation ? scroll.position.maxScrollExtent : 0,
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
           );
@@ -47,16 +54,39 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _voice() async {
+    final account = widget.session.accountGeneration;
+    final text = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) =>
+          VoiceChatSheet(session: widget.session, initialText: input.text),
+    );
+    if (mounted &&
+        account == widget.session.accountGeneration &&
+        text != null) {
+      input.text = text;
+      input.selection = TextSelection.collapsed(offset: text.length);
+    }
+  }
+
   void _send() {
     final text = input.text.trim();
-    if (text.isEmpty || widget.session.aiBusy) return;
+    if (text.isEmpty ||
+        widget.session.aiBusy ||
+        widget.session.chatActionBusy ||
+        widget.session.contextActionBusy ||
+        widget.session.firstDayPlanner?.changeBusy == true)
+      return;
     input.clear();
     widget.session.submitChat(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.session;
+    final s = widget.session, planner = widget.session.firstDayPlanner;
+    final pending = planner?.proposal;
     return Column(
       children: [
         if (s.aiService != null)
@@ -64,14 +94,16 @@ class _ChatPageState extends State<ChatPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               children: [
-                Expanded(
-                  child: FilterChip(
-                    label: const Text(
-                      'Include food preferences',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                    selected: s.shareFoodContext,
-                    onSelected: s.aiBusy ? null : s.setShareFoodContext,
+                const Icon(
+                  Icons.verified_user_outlined,
+                  size: 17,
+                  color: ValoraColors.forest,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Saved food rules applied',
+                    style: TextStyle(fontSize: 12),
                   ),
                 ),
                 IconButton(
@@ -90,7 +122,12 @@ class _ChatPageState extends State<ChatPage> {
                 if (s.chat.isNotEmpty)
                   IconButton(
                     tooltip: 'Clear conversation',
-                    onPressed: s.aiBusy ? null : s.clearChat,
+                    onPressed: s.aiBusy || planner?.changeBusy == true
+                        ? null
+                        : () {
+                            planner?.cancelChange();
+                            s.clearChat();
+                          },
                     icon: const Icon(Icons.delete_outline_rounded),
                   ),
               ],
@@ -102,59 +139,148 @@ class _ChatPageState extends State<ChatPage> {
             pageKey: s.conversation ? 'conversation' : 'workspace',
             children: [
               if (s.aiService != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(
-                    s.shareFoodContext
-                        ? 'AI receives recent messages and your active food preferences, including reported allergies. Health-context fields are excluded.'
-                        : 'AI receives recent messages. Saved food preferences are excluded unless you choose to include them.',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: ValoraColors.muted,
+                TextButton.icon(
+                  icon: const Icon(Icons.privacy_tip_outlined, size: 16),
+                  label: const Text(
+                    'What is shared with AI',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('You control the context'),
+                      content: const Text(
+                        'Your saved diet, allergens, foods to avoid and cooking time filter meal suggestions on the server. Nebius receives recent messages and eligible recipes. Saved health fields are excluded. Anything you type in chat is sent as part of your message.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Got it'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               if (s.conversation) ...[
                 const SizedBox(height: 8),
                 ...s.chat.map((entry) => _Message(entry)),
-                if (s.chatActionMessage.isNotEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(s.chatActionMessage),
-                          if (s.pendingChatAction != null) ...[
-                            const SizedBox(height: 8),
-                            const Text('Review this change before saving.'),
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                FilledButton(
-                                  onPressed: s.chatActionBusy
-                                      ? null
-                                      : s.confirmChatAction,
-                                  child: Text(
-                                    s.chatActionBusy
-                                        ? 'Saving…'
-                                        : s.chatActionApplied
-                                        ? 'Retry saving'
-                                        : 'Confirm change',
-                                  ),
-                                ),
-                                if (!s.chatActionApplied)
-                                  TextButton(
-                                    onPressed: s.chatActionBusy
-                                        ? null
-                                        : s.cancelChatAction,
-                                    child: const Text('Cancel'),
-                                  ),
-                              ],
+                if (pending != null)
+                  Surface(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Proposed meal change',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${pending['meal']}: ${(pending['before'] as Map)['name']} → ${(pending['recipe'] as Map)['name']}',
+                        ),
+                        Text(
+                          'Ingredients: ${((pending['recipe'] as Map)['ingredients'] as List).join(', ')}',
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            FilledButton(
+                              onPressed: (planner!.changeBusy || planner.busy)
+                                  ? null
+                                  : planner.confirmChange,
+                              child: Text(
+                                (planner.changeBusy || planner.busy)
+                                    ? 'Saving…'
+                                    : 'Confirm meal change',
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: (planner.changeBusy || planner.busy)
+                                  ? null
+                                  : planner.cancelChange,
+                              child: const Text('Keep current meal'),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+                if (planner?.changeMessage.isNotEmpty == true)
+                  InfoNote(planner!.changeMessage),
+                if (s.pendingContextActions != null ||
+                    s.contextActionMessage.isNotEmpty)
+                  Surface(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.contextActionMessage),
+                        if (s.pendingContextActions != null) ...[
+                          for (final action in s.pendingContextActions!)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                '${(action['kind'] as String).replaceAll('_', ' ')}: ${action['value']}',
+                              ),
+                            ),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              FilledButton(
+                                onPressed: s.contextActionBusy
+                                    ? null
+                                    : s.confirmContextActions,
+                                child: Text(
+                                  s.contextActionBusy
+                                      ? 'Saving…'
+                                      : 'Save context & refresh plan',
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: s.contextActionBusy
+                                    ? null
+                                    : s.cancelContextActions,
+                                child: const Text('Keep saved context'),
+                              ),
+                            ],
+                          ),
                         ],
-                      ),
+                      ],
+                    ),
+                  ),
+                if (s.chatActionMessage.isNotEmpty)
+                  Surface(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.chatActionMessage),
+                        if (s.pendingChatAction != null) ...[
+                          const Text('Review this change before saving.'),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              FilledButton(
+                                onPressed: s.chatActionBusy
+                                    ? null
+                                    : s.confirmChatAction,
+                                child: Text(
+                                  s.chatActionBusy
+                                      ? 'Saving…'
+                                      : s.chatActionApplied
+                                      ? 'Retry saving'
+                                      : 'Confirm change',
+                                ),
+                              ),
+                              if (!s.chatActionApplied)
+                                TextButton(
+                                  onPressed: s.chatActionBusy
+                                      ? null
+                                      : s.cancelChatAction,
+                                  child: const Text('Cancel'),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 if (s.canRetryChat)
@@ -169,125 +295,81 @@ class _ChatPageState extends State<ChatPage> {
                 if (s.aiBusy)
                   const Padding(
                     padding: EdgeInsets.all(12),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
+                    child: Row(
+                      children: [
+                        SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('Preparing a reply…')),
+                      ],
                     ),
+                  ),
+              ] else if (s.request.isNotEmpty ||
+                  s.focus == ChatFocus.rationale) ...[
+                if (planner != null && s.focus == ChatFocus.plan)
+                  FirstDayPlanView(
+                    planner: planner,
+                    onReview: () => widget.onPanel(Panel.rules),
+                    compact: true,
+                    onOpen: widget.onPlan,
+                  )
+                else
+                  _FocusCard(
+                    session: s,
+                    onPlan: widget.onPlan,
+                    onPanel: widget.onPanel,
                   ),
               ] else ...[
-                const Eyebrow('Your space'),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Try “Set my weekly budget to INR 3000”, “Set my cooking time to 20 minutes”, or “Set my eating pattern to vegetarian”. You will review each change before saving.',
-                  ),
-                ),
+                const SizedBox(height: 20),
                 const Heading(
-                  'What do you need\nright now?',
+                  'A little help with\nwhat to eat.',
                   subtitle:
-                      'Open something you already have, or ask for a new thought.',
+                      'Meals that fit your saved food preferences. Changes stay yours to confirm.',
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Glance(
-                        Icons.calendar_view_month_outlined,
-                        'Next plan',
-                        s.planStatus,
-                        () => s.openFocus(ChatFocus.plan),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _Glance(
-                        Icons.kitchen_outlined,
-                        'Pantry',
-                        '${s.pantry.length} items listed',
-                        () => s.openFocus(ChatFocus.pantry),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _Glance(
-                        Icons.shield_outlined,
-                        'Food rules',
-                        '${s.profile.allergies.length} allergies saved',
-                        () => s.openFocus(ChatFocus.rules),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Eyebrow(s.request.isEmpty ? 'Open now' : 'Your request'),
-                    const Icon(
-                      Icons.south_east,
-                      size: 15,
-                      color: ValoraColors.muted,
-                    ),
-                  ],
-                ),
-                if (s.request.isNotEmpty)
+                const SizedBox(height: 20),
+                for (final suggestion in [
+                  'Suggest a quick lunch',
+                  'I want Italian for dinner tonight',
+                  'Set my cooking time to 20 minutes',
+                ])
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: ValoraColors.mint,
-                        borderRadius: BorderRadius.circular(15),
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      onPressed: () => s.submitChat(suggestion),
+                      child: Row(
                         children: [
-                          const Text(
-                            'YOU ASKED',
-                            style: TextStyle(
-                              fontSize: 9,
-                              letterSpacing: 1,
-                              fontWeight: FontWeight.w800,
-                              color: ValoraColors.forest,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(s.request, style: const TextStyle(fontSize: 13)),
+                          Expanded(child: Text(suggestion)),
+                          const Icon(Icons.north_east_rounded, size: 18),
                         ],
                       ),
                     ),
                   ),
-                _FocusCard(
-                  session: s,
-                  onPlan: widget.onPlan,
-                  onPanel: widget.onPanel,
-                ),
-                const SizedBox(height: 13),
-                const Eyebrow('Try asking'),
+                const SizedBox(height: 12),
                 Wrap(
-                  spacing: 7,
-                  runSpacing: 5,
+                  spacing: 8,
                   children: [
-                    for (final prompt in [
-                      "What's in my pantry?",
-                      'Show my next plan',
-                      'My allergies',
-                    ])
-                      ActionChip(
-                        label: Text(
-                          prompt,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        onPressed: () => s.submitChat(prompt),
-                        side: const BorderSide(color: ValoraColors.line),
-                        backgroundColor: Colors.white,
+                    ActionChip(
+                      avatar: const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 16,
                       ),
+                      label: const Text('My meal plan'),
+                      onPressed: widget.onPlan,
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.kitchen_outlined, size: 16),
+                      label: const Text('My pantry'),
+                      onPressed: () => s.submitChat("What's in my pantry?"),
+                    ),
                   ],
                 ),
               ],
@@ -312,15 +394,11 @@ class _ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   IconButton(
-                    tooltip: 'Voice input',
-                    onPressed: () => toast(
-                      context,
-                      'Voice capture is not connected in this preview. You can type your request.',
-                    ),
+                    tooltip: 'Voice message',
+                    onPressed: s.aiBusy || s.contextActionBusy ? null : _voice,
                     icon: const Icon(
                       Icons.mic_none_rounded,
                       color: ValoraColors.forest,
-                      size: 22,
                     ),
                   ),
                   Expanded(
@@ -332,15 +410,15 @@ class _ChatPageState extends State<ChatPage> {
                       maxLength: 12000,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
-                      style: const TextStyle(fontSize: 12, height: 1.4),
+                      style: const TextStyle(fontSize: 15, height: 1.4),
                       decoration: const InputDecoration(
-                        hintText:
-                            'Ask anything to Valora for your next plan...',
-                        hintMaxLines: 2,
+                        hintText: 'Ask about your meals…',
+                        hintMaxLines: 1,
+                        counterText: '',
                         filled: false,
                         contentPadding: EdgeInsets.symmetric(
                           vertical: 13,
-                          horizontal: 2,
+                          horizontal: 8,
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -349,17 +427,14 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Attach a report or photo',
-                    onPressed: () => widget.onPanel(Panel.reports),
-                    icon: const Icon(
-                      Icons.attach_file_rounded,
-                      color: ValoraColors.forest,
-                      size: 21,
-                    ),
-                  ),
-                  IconButton(
                     tooltip: 'Send request',
-                    onPressed: s.aiBusy ? null : _send,
+                    onPressed:
+                        s.aiBusy ||
+                            s.chatActionBusy ||
+                            s.contextActionBusy ||
+                            planner?.changeBusy == true
+                        ? null
+                        : _send,
                     style: IconButton.styleFrom(
                       backgroundColor: ValoraColors.forest,
                       foregroundColor: Colors.white,
@@ -367,7 +442,7 @@ class _ChatPageState extends State<ChatPage> {
                         borderRadius: BorderRadius.circular(13),
                       ),
                     ),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 21),
+                    icon: const Icon(Icons.arrow_upward_rounded, size: 21),
                   ),
                 ],
               ),
@@ -377,57 +452,6 @@ class _ChatPageState extends State<ChatPage> {
       ],
     );
   }
-}
-
-class _Glance extends StatelessWidget {
-  const _Glance(this.icon, this.title, this.detail, this.onTap);
-  final IconData icon;
-  final String title, detail;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(17),
-      child: Surface(
-        padding: const EdgeInsets.all(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 91),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: ValoraColors.mint,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(icon, color: ValoraColors.forest, size: 17),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                detail,
-                style: const TextStyle(
-                  fontSize: 9,
-                  color: ValoraColors.muted,
-                  height: 1.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 class _FocusCard extends StatelessWidget {
@@ -714,16 +738,15 @@ class _Message extends StatelessWidget {
         ],
         Flexible(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 300),
+            constraints: const BoxConstraints(maxWidth: 560),
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: entry.isUser ? ValoraColors.mint : Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(entry.isUser ? 18 : 5),
-                bottomRight: Radius.circular(entry.isUser ? 5 : 18),
-              ),
+              color: entry.isUser
+                  ? ValoraColors.mint
+                  : entry.isError
+                  ? ValoraColors.red
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(18),
               border: entry.isUser
                   ? null
                   : Border.all(color: ValoraColors.line),
@@ -732,7 +755,11 @@ class _Message extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.isUser ? 'YOU' : 'Valora',
+                  entry.isUser
+                      ? 'You'
+                      : entry.isError
+                      ? 'Reply interrupted'
+                      : 'Valora',
                   style: const TextStyle(
                     fontSize: 10,
                     color: ValoraColors.forest,
@@ -741,20 +768,70 @@ class _Message extends StatelessWidget {
                 ),
                 const SizedBox(height: 7),
                 SelectionArea(
-                  child: Text(
-                    entry.text,
-                    style: const TextStyle(fontSize: 13, height: 1.5),
-                  ),
+                  child: entry.isUser || entry.isError
+                      ? Text(
+                          entry.text,
+                          style: const TextStyle(fontSize: 15, height: 1.55),
+                        )
+                      : MarkdownBody(
+                          data: entry.text,
+                          onTapLink: (_, href, _) async {
+                            final url = Uri.tryParse(href ?? '');
+                            if (url != null &&
+                                url.scheme == 'https' &&
+                                [
+                                  'pubmed.ncbi.nlm.nih.gov',
+                                  'pmc.ncbi.nlm.nih.gov',
+                                  'www.nejm.org',
+                                  'doi.org',
+                                ].contains(url.host)) {
+                              await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            }
+                          },
+                          imageBuilder: (_, _, _) => const SizedBox.shrink(),
+                          styleSheet:
+                              MarkdownStyleSheet.fromTheme(
+                                Theme.of(context),
+                              ).copyWith(
+                                p: const TextStyle(
+                                  fontSize: 15,
+                                  height: 1.55,
+                                  color: ValoraColors.ink,
+                                ),
+                                h1: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                h2: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                h3: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                listBullet: const TextStyle(fontSize: 15),
+                                blockSpacing: 10,
+                              ),
+                        ),
                 ),
                 if (entry.source != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      switch (entry.source) {
-                        'on_device_gemma' => 'Gemma · on device',
-                        'gemini' => 'Gemini · cloud',
-                        _ => 'OpenAI · cloud',
-                      },
+                      (switch (entry.source) {
+                            'nebius' => 'NVIDIA Nemotron via Nebius',
+                            'knowledge' => 'Published study sources',
+                            'valora' => 'Valora · saved food rules',
+                            'on_device_gemma' => 'Gemma · on device',
+                            'gemini' => 'Gemini · cloud',
+                            'openai' => 'OpenAI · cloud',
+                            _ => 'Cloud AI',
+                          }) +
+                          (entry.model == null ? '' : ' · ${entry.model}'),
                       style: const TextStyle(
                         fontSize: 10,
                         color: ValoraColors.muted,
@@ -765,7 +842,6 @@ class _Message extends StatelessWidget {
             ),
           ),
         ),
-        if (entry.isUser) const SizedBox(width: 0),
       ],
     ),
   );

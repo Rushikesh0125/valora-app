@@ -1,3 +1,4 @@
+import '../core/tag_suggestions.dart';
 import 'package:flutter/material.dart';
 import '../core/session_controller.dart';
 import '../core/theme.dart';
@@ -88,9 +89,11 @@ class OnboardingPage extends StatelessWidget {
                     onSelect: (v) => session.toggle(p.goals, v),
                   ),
                   if (p.goals.contains('Other'))
-                    Field(
+                    TagField(
                       'What else would you like help with?',
                       value: p.otherGoal,
+                      suggestions: goalSuggestions,
+                      maxLength: 300,
                       hint: 'Tell us briefly',
                       onChanged: (v) =>
                           session.updateProfile(() => p.otherGoal = v),
@@ -109,10 +112,12 @@ class OnboardingPage extends StatelessWidget {
                     selected: p.pattern,
                     onSelect: (v) => session.updateProfile(() => p.pattern = v),
                   ),
-                  Field(
+                  TagField(
                     'Foods you don’t eat (optional)',
                     value: p.exclusions,
-                    hint: 'e.g. beef, pork, mushrooms',
+                    suggestions: foodSuggestions,
+                    maxLength: 2000,
+                    hint: 'e.g. eggplant',
                     onChanged: (v) =>
                         session.updateProfile(() => p.exclusions = v),
                   ),
@@ -294,10 +299,12 @@ class FoodRulesFields extends StatelessWidget {
             selected: p.pattern,
             onSelect: (v) => session.updateProfile(() => p.pattern = v),
           ),
-          Field(
+          TagField(
             'Foods you don’t eat',
             value: p.exclusions,
-            hint: 'e.g. beef, pork, mushrooms',
+            suggestions: foodSuggestions,
+            maxLength: 2000,
+            hint: 'e.g. eggplant',
             onChanged: (v) => session.updateProfile(() => p.exclusions = v),
           ),
           const SizedBox(height: 18),
@@ -309,9 +316,11 @@ class FoodRulesFields extends StatelessWidget {
           onSelect: (v) => session.toggle(p.allergies, v),
         ),
         if (p.allergies.contains('Other'))
-          Field(
+          TagField(
             'Which allergy?',
             value: p.otherAllergy,
+            suggestions: allergySuggestions,
+            maxLength: 500,
             hint: 'e.g. sesame',
             onChanged: (v) => session.updateProfile(() => p.otherAllergy = v),
           ),
@@ -323,9 +332,11 @@ class FoodRulesFields extends StatelessWidget {
           onSelect: session.toggleHealth,
         ),
         if (p.health.contains('Other'))
-          Field(
+          TagField(
             'Tell us only what you want to share',
             value: p.otherHealth,
+            suggestions: healthSuggestions,
+            maxLength: 500,
             hint: 'e.g. a recent injury',
             onChanged: (v) => session.updateProfile(() => p.otherHealth = v),
           ),
@@ -478,9 +489,11 @@ class CuisineFields extends StatelessWidget {
           onSelect: session.toggleCuisine,
         ),
         if (p.cuisines.contains('Other'))
-          Field(
+          TagField(
             'Which cuisine?',
             value: p.otherCuisine,
+            suggestions: cuisineSuggestions,
+            maxLength: 300,
             hint: 'e.g. Korean',
             onChanged: (v) => session.updateProfile(() => p.otherCuisine = v),
           ),
@@ -526,6 +539,18 @@ class ProfileConfirmation extends StatelessWidget {
               'These are the details Valora will use for your first plan.',
         ),
         Surface(child: ProfileRows(session: session)),
+        if (session.firstDayPlanner != null)
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: session.firstPlanConsent,
+            onChanged: session.savingAccount
+                ? null
+                : (value) => session.setFirstPlanConsent(value ?? false),
+            title: const Text('Prepare my remaining meals today with Nebius'),
+            subtitle: const Text(
+              'Allow NVIDIA Nemotron via Nebius to receive my diet, cuisines, cooking time, budget and meal coverage. Allergies and foods to avoid are checked on the server. Saved health details are not sent. Target: under five minutes after confirming. Cloud consent can be turned off later.',
+            ),
+          ),
         const InfoNote(
           'Safety details are based on what you reported. You can correct or remove them any time.',
         ),
@@ -543,7 +568,14 @@ class ProfileConfirmation extends StatelessWidget {
                 onPressed: session.savingAccount
                     ? null
                     : session.completeOnboarding,
-                child: Text(session.savingAccount ? 'Saving…' : 'Looks right'),
+                child: Text(
+                  session.savingAccount
+                      ? 'Saving…'
+                      : session.firstDayPlanner != null &&
+                            session.firstPlanConsent
+                      ? 'Create my plan'
+                      : 'Looks right',
+                ),
               ),
             ),
           ],

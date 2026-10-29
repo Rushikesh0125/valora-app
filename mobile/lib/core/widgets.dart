@@ -1,3 +1,4 @@
+import 'tag_suggestions.dart';
 import 'package:flutter/material.dart';
 import 'models.dart';
 import 'theme.dart';
@@ -478,5 +479,191 @@ class ActionRow extends StatelessWidget {
       color: ValoraColors.muted,
     ),
     onTap: onTap,
+  );
+}
+
+class TagField extends StatefulWidget {
+  const TagField(
+    this.label, {
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.hint,
+    this.maxLength = 300,
+    this.suggestions = const [],
+  });
+  final String label, value;
+  final String? hint;
+  final int maxLength;
+  final List<TagSuggestion> suggestions;
+  final ValueChanged<String> onChanged;
+  @override
+  State<TagField> createState() => _TagFieldState();
+}
+
+class _TagFieldState extends State<TagField> {
+  final input = TextEditingController();
+  late List<String> items = _parse(widget.value);
+  String? _lastEmitted;
+  List<String> _parse(String value) {
+    final seen = <String>{};
+    return value
+        .split(RegExp(r'[,;\n]'))
+        .map((v) {
+          final term = v.trim();
+          for (final option in widget.suggestions) {
+            if (option.isExact(term)) return option.id;
+          }
+          return term;
+        })
+        .where((v) => v.isNotEmpty && seen.add(v.toLowerCase()))
+        .toList();
+  }
+
+  @override
+  void didUpdateWidget(covariant TagField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value && widget.value != _lastEmitted) {
+      items = _parse(widget.value);
+      input.clear();
+    }
+  }
+
+  void _emit() {
+    // Persist drafts without letting canonical aliases exceed the storage limit.
+    final raw = [
+      ...items,
+      input.text.trim(),
+    ].where((v) => v.isNotEmpty).join(', ');
+    final normalized = _parse(raw).join(', ');
+    final value = normalized.length <= widget.maxLength ? normalized : raw;
+    if (value.length > widget.maxLength) return;
+    _lastEmitted = value;
+    widget.onChanged(value);
+  }
+
+  void _add([String? selected]) {
+    final value = selected ?? input.text;
+    if (value.trim().isEmpty ||
+        _parse([...items, value].join(', ')).join(', ').length >
+            widget.maxLength)
+      return;
+    setState(() {
+      items = _parse([...items, value].join(', '));
+      input.clear();
+    });
+    _emit();
+  }
+
+  @override
+  void dispose() {
+    input.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 13),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FieldLabel(widget.label),
+        if (items.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final item in items)
+                  InputChip(
+                    label: Text(
+                      widget.suggestions
+                              .where((s) => s.id == item)
+                              .map((s) => s.label)
+                              .firstOrNull ??
+                          item,
+                    ),
+                    backgroundColor: ValoraColors.mint,
+                    deleteButtonTooltipMessage: 'Remove $item',
+                    onDeleted: () {
+                      setState(() => items.remove(item));
+                      _emit();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextFormField(
+                key: ValueKey(widget.label),
+                controller: input,
+                textInputAction: TextInputAction.done,
+                enabled:
+                    items.isEmpty ||
+                    items.join(', ').length + 2 < widget.maxLength,
+                maxLength:
+                    (widget.maxLength -
+                            items.join(', ').length -
+                            (items.isEmpty ? 0 : 2))
+                        .clamp(1, widget.maxLength),
+                onChanged: (_) {
+                  setState(() {});
+                  _emit();
+                },
+                onFieldSubmitted: (_) => _add(),
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: widget.hint ?? 'Type one item',
+                  counterText: '',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: input.text.trim().isEmpty ? null : _add,
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+        if (input.text.trim().isNotEmpty && widget.suggestions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final option
+                    in widget.suggestions
+                        .where(
+                          (s) => s.matches(input.text) && !items.contains(s.id),
+                        )
+                        .take(5))
+                  ActionChip(
+                    label: Text(option.label),
+                    tooltip: option.aliases.isEmpty
+                        ? option.label
+                        : '${option.label}: ${option.aliases.join(', ')}',
+                    onPressed:
+                        _parse(
+                              [...items, option.id].join(', '),
+                            ).join(', ').length <=
+                            widget.maxLength
+                        ? () => _add(option.id)
+                        : null,
+                  ),
+                if (!widget.suggestions.any((s) => s.isExact(input.text)))
+                  ActionChip(
+                    label: Text('Add custom: ${input.text.trim()}'),
+                    onPressed: () => _add(),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    ),
   );
 }

@@ -1,8 +1,13 @@
+import { PantryInterpreter } from './pantry-interpreter.js';
+import { PersonalFoodChat } from './personal-food-chat.js';
+import { MealPlanChanges } from './meal-plan-changes.js';
+import { FirstDayPlanService } from "./first-day-plan.js";
 import { z } from "zod";
 import { authenticate } from "./auth.js";
 import { database } from "./db.js";
 import { D1UserRepository } from "./repository.js";
 import { D1FoodRepository, FoodStateConflict, FoodStateTooLarge, foodWriteSchema, readFoodWrite } from "./food-state.js";
+import { NebiusError } from "./nebius.js";
 import { AiConsentRequired, AiProviderUnavailable, AiService } from "./ai.js";
 import type { Env } from "./types.js";
 import {
@@ -61,7 +66,7 @@ export default {
     const headers = corsHeaders(request, env);
     if (request.method === "OPTIONS") return new Response(null, { status:204, headers });
     const url = new URL(request.url);
-    if (url.pathname === "/health" && request.method === "GET") return response({ status:"ok", service:"valora-api" }, 200, headers);
+    if (url.pathname === "/health" && request.method === "GET") return response({ status:"ok", service:"valora-nebius-api" }, 200, headers);
     if (url.pathname === "/.well-known/jwks.json" && request.method === "GET") {
       try {
         const body = await publicJwks(env);
@@ -118,6 +123,24 @@ export default {
       const repository = new D1UserRepository(database(env));
       principal = await repository.resolvePrincipal(principal);
       const userId = principal.userId;
+      if (url.pathname === '/v1/meal-plan/proposals' && request.method === 'POST') {
+        const body=parseBody(z.object({request:z.string().trim().min(1).max(12000)}).strict(),await request.json().catch(()=>null));
+        if(body instanceof Response) return body;
+        return response({data:await new MealPlanChanges(database(env),env).propose(principal,body.request)},200,headers);
+      }
+      const proposalMatch=url.pathname.match(/^\/v1\/meal-plan\/proposals\/([a-f0-9-]{36})\/confirm$/);
+      if(proposalMatch && request.method==='POST') return response({data:await new MealPlanChanges(database(env),env).confirm(principal,proposalMatch[1])},200,headers);
+      if (url.pathname === "/v1/first-day-plan" && request.method === "GET") return response({data:await new FirstDayPlanService(database(env),env).get(userId)},200,headers);
+      if (url.pathname === "/v1/first-day-plan" && request.method === "POST") {
+        const body=parseBody(z.object({retry:z.boolean().default(false),confirmedPreferences:z.boolean().default(false)}).strict(),await request.json().catch(()=>null));
+        if(body instanceof Response) return body;
+        return response({data:await new FirstDayPlanService(database(env),env).start(principal,body.retry,body.confirmedPreferences)},200,headers);
+      }
+      if (url.pathname === '/v1/pantry/interpret' && request.method === 'POST') {
+        const body=parseBody(z.object({transcript:z.string().trim().min(1).max(4000)}).strict(),await request.json().catch(()=>null));
+        if(body instanceof Response)return body;
+        return response({data:await new PantryInterpreter(database(env),env).interpret(principal,body.transcript)},200,headers);
+      }
       if (url.pathname === "/v1/food-state" && request.method === "GET") {
         return response({data:await new D1FoodRepository(database(env)).get(userId)},200,headers);
       }
@@ -135,7 +158,7 @@ export default {
       }
       if (url.pathname === "/v1/ai/respond" && request.method === "POST") {
         const body=parseBody(aiInputSchema,await request.json().catch(()=>null)); if(body instanceof Response)return body;
-        const result=await ai.respond(principal,body);
+        const result=body.task==='conversation' ? await new PersonalFoodChat(database(env),env).respond(principal,body) : await ai.respond(principal,body);
         return response({data:result},200,headers);
       }
       if (url.pathname === "/v1/profile" && request.method === "GET") return response({ data:await repository.getProfile(userId) },200,headers);
@@ -164,6 +187,7 @@ export default {
     } catch (e) {
       if (e instanceof FoodStateConflict) return response({error:"food_state_conflict"},409,headers);
       if (e instanceof FoodStateTooLarge) return response({error:"food_state_too_large"},413,headers);
+      if (e instanceof NebiusError) return response({error:e.code}, e.code === "ai_provider_timeout" ? 504 : e.code === "ai_provider_rate_limited" ? 429 : e.code === "ai_provider_unavailable" ? 503 : 502,headers);
       if (e instanceof AiConsentRequired) return response({error:"cloud_ai_consent_required"},403,headers);
       if (e instanceof AiProviderUnavailable) return response({error:"ai_provider_unavailable"},503,headers);
       if (e instanceof Error && (e.message.startsWith("openai_http_") || e.message.startsWith("gemini_http_"))) return response({error:"ai_provider_request_failed"},502,headers);
@@ -176,7 +200,7 @@ export default {
 function mobileSignInErrorRedirect(env: Env, clientState: string | null): string {
   if (!env.MOBILE_AUTH_REDIRECT_URI) throw new IdentityConfigurationError("mobile_auth_redirect_uri_not_configured");
   const redirect = new URL(env.MOBILE_AUTH_REDIRECT_URI);
-  if (redirect.protocol !== "valora:" || redirect.hostname !== "auth" || redirect.pathname !== "/callback") throw new IdentityConfigurationError("mobile_auth_redirect_uri_invalid");
+  if (redirect.protocol !== "valoranebius:" || redirect.hostname !== "auth" || redirect.pathname !== "/callback") throw new IdentityConfigurationError("mobile_auth_redirect_uri_invalid");
   redirect.search = new URLSearchParams({error:"sign_in_failed", ...(clientState ? {state:clientState} : {})}).toString();
   return redirect.toString();
 }

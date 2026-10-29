@@ -9,20 +9,27 @@ enum AiTask { conversation, summarize, extractDraft }
 enum AiComplexity { routine, complex }
 
 class AiReply {
-  const AiReply({required this.text, required this.source, this.usage});
+  const AiReply({
+    required this.text,
+    required this.source,
+    this.model,
+    this.usage,
+    this.contextActions,
+  });
+  final List<Map<String, dynamic>>? contextActions;
   final String text;
   final String source;
+  final String? model;
   final Map<String, dynamic>? usage;
 }
 
-/// Routes every request to Gemma on-device in the current local-only test mode.
-/// Set localOnly false to restore the consented cloud fallback. This service
-/// deliberately has no tools and cannot change plans or saved data.
+/// Uses consented cloud inference by default in the Nebius variant.
+/// This service has no tools and cannot change plans or saved data.
 class ValoraAiService {
   ValoraAiService(
     this.api, {
-    this.onDeviceEnabled = true,
-    this.localOnly = true,
+    this.onDeviceEnabled = false,
+    this.localOnly = false,
   });
   final BackendApi api;
   final bool onDeviceEnabled;
@@ -127,7 +134,11 @@ class ValoraAiService {
     );
     return AiReply(
       text: result['data']['text'] as String,
+      contextActions: (result['data']['contextActions'] as List?)
+          ?.map((v) => (v as Map).cast<String, dynamic>())
+          .toList(),
       source: result['data']['provider'] as String,
+      model: result['data']['model'] as String?,
       usage: (result['data']['usage'] as Map<dynamic, dynamic>?)
           ?.cast<String, dynamic>(),
     );

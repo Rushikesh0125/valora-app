@@ -5,7 +5,9 @@ DEV_USER_ID=00000000-0000-4000-8000-000000000001
 ALLOWED_ORIGINS=http://localhost:49812,http://localhost:5173
 JWT_ISSUER=http://localhost:8787
 # Select one cloud provider; keep keys in local .dev.vars or Worker secrets only.
-AI_DEFAULT_PROVIDER=openai
+AI_DEFAULT_PROVIDER=nebius
+AI_NEBIUS_MODEL=nvidia/nemotron-3-super-120b-a12b
+# NEBIUS_API_KEY=...
 # Optional model overrides.
 # AI_OPENAI_ROUTINE_MODEL=gpt-6-luna
 # AI_OPENAI_COMPLEX_MODEL=gpt-6-luna
@@ -18,10 +20,10 @@ AI_DEFAULT_PROVIDER=openai
 # AUTH_SIGNING_PRIVATE_JWK={...generated private JWK...}
 # Provider callback URLs must exactly match the routes registered with each provider.
 # Google Web OAuth client. The backend web client is separate from the Android client.
-# GOOGLE_CLIENT_ID=835167251935-uv31077qlqatidou04dnd3475a0f9ub5.apps.googleusercontent.com
+# GOOGLE_CLIENT_ID=YOUR_NEBIUS_VARIANT_WEB_CLIENT_ID
 # GOOGLE_CLIENT_SECRET=...
 # GOOGLE_CALLBACK_URL=http://localhost:8787/v1/auth/google/callback
-# MOBILE_AUTH_REDIRECT_URI=valora://auth/callback
+# MOBILE_AUTH_REDIRECT_URI=valoranebius://auth/callback
 # OPENAI_CLIENT_ID=...
 # OPENAI_CALLBACK_URL=http://localhost:8787/v1/auth/openai/callback
-# MOBILE_AUTH_REDIRECT_URI=valora://auth/callback
+# MOBILE_AUTH_REDIRECT_URI=valoranebius://auth/callback

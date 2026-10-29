@@ -69,7 +69,7 @@ cd android
 .\gradlew.bat assembleDebug "-Pkotlin.incremental=false"
 ```
 
-Account persistence is verified against a mock HTTP boundary. Check the production path on a signed-in device by saving a preference, restarting, and confirming it is restored without onboarding. See `../ACCOUNT_DATA_PLAN.md` for consistency and failure behavior.
+Account persistence is verified against a mock HTTP boundary. Check the production path on a signed-in device by saving a preference, restarting, and confirming it is restored without onboarding.
 
 ## Chat integration
 

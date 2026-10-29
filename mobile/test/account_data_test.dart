@@ -94,7 +94,7 @@ void main() {
       session.signedIn = true;
       await session.loadAccountData();
       await tester.pumpAndSettle();
-      expect(find.text('What do you need\nright now?'), findsOneWidget);
+      expect(find.text('A little help with\nwhat to eat.'), findsOneWidget);
       expect(find.text("Let's make food feel easier."), findsNothing);
       await session.signOut();
       await tester.pumpAndSettle();

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'pantry_voice.dart';
 import 'package:flutter/material.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
@@ -221,6 +223,16 @@ class _PantryPanel extends StatelessWidget {
         style: TextStyle(fontSize: 12, color: ValoraColors.muted, height: 1.5),
       ),
       const SizedBox(height: 16),
+      OutlinedButton.icon(
+        onPressed: () => _showSheet(
+          context,
+          'Pantry voice input',
+          (_) => PantryVoicePanel(session: session),
+        ),
+        icon: const Icon(Icons.mic_none_rounded),
+        label: const Text('Add or remove by voice'),
+      ),
+      const SizedBox(height: 12),
       if (session.pantry.isEmpty)
         const Surface(
           child: Text('No items listed. Add an ingredient or leftover.'),
@@ -926,6 +938,18 @@ class _PreparedPanelState extends State<_PreparedPanel> {
   }
 }
 
+String _factText(SavedFact fact) {
+  if (fact.key != 'meal_style') return fact.value;
+  try {
+    final value = jsonDecode(fact.value) as Map<String, dynamic>;
+    final until = DateTime.parse(value['expiresAt'] as String).toLocal();
+    final expired = until.isBefore(DateTime.now());
+    return '${value['style']} meals · ${expired ? 'Expired' : 'Until'} ${until.day}/${until.month} ${until.hour.toString().padLeft(2, '0')}:${until.minute.toString().padLeft(2, '0')}';
+  } catch (_) {
+    return 'Comfort meal preference';
+  }
+}
+
 class _MemoryPanel extends StatelessWidget {
   const _MemoryPanel(this.session);
   final SessionController session;
@@ -945,7 +969,7 @@ class _MemoryPanel extends StatelessWidget {
             child: ActionRow(
               Icons.bookmark_outline_rounded,
               fact.label,
-              '${fact.value}${session.pausedFacts.contains(fact.key) ? ' · Paused' : ''}',
+              '${_factText(fact)}${session.pausedFacts.contains(fact.key) ? ' · Paused' : ''}',
               () => _showSheet(
                 context,
                 'Saved fact',
@@ -987,7 +1011,7 @@ class _FactDetail extends StatelessWidget {
         children: [
           Pill(paused ? 'PAUSED' : 'CONFIRMED BY YOU'),
           const SizedBox(height: 15),
-          Heading(fact.label, subtitle: fact.value),
+          Heading(fact.label, subtitle: _factText(fact)),
           Surface(
             child: Column(
               children: [

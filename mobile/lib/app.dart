@@ -37,7 +37,8 @@ class _ValoraAppState extends State<ValoraApp> with WidgetsBindingObserver {
     if (widget.session != null) return;
     const apiUrl = String.fromEnvironment(
       'VALORA_API_URL',
-      defaultValue: 'https://valora-api.jadhav-rushikesh-ggl.workers.dev',
+      defaultValue:
+          'https://valora-nebius-api.jadhav-rushikesh-ggl.workers.dev',
     );
     final isMobileApp =
         !kIsWeb &&
@@ -59,6 +60,11 @@ class _ValoraAppState extends State<ValoraApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        session.signedIn &&
+        session.onboarded) {
+      unawaited(session.firstDayPlanner?.refresh());
+    }
     if (state == AppLifecycleState.inactive &&
         session.hasUnsavedChanges &&
         session.onboarded) {
@@ -305,6 +311,10 @@ class _AppShellState extends State<_AppShell> {
                 session: s,
                 onReview: () => setState(() => reviewingProfile = true),
               );
+      }
+      if (reviewingProfile && s.firstDayPlanner != null) {
+        reviewingProfile = false;
+        tab = 1;
       }
       final inConversation = tab == 0 && s.conversation;
       return PopScope(

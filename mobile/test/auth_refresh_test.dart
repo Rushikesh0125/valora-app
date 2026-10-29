@@ -9,9 +9,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(
     () => FlutterSecureStorage.setMockInitialValues({
-      'valora.refresh_token': 'existing-refresh',
-      'valora.access_token': 'expired',
-      'valora.access_expiry': '0',
+      'valoranebius.refresh_token': 'existing-refresh',
+      'valoranebius.access_token': 'expired',
+      'valoranebius.access_expiry': '0',
     }),
   );
 
@@ -83,7 +83,9 @@ void main() {
       expect(await auth.accessToken(), 'new-access');
       expect(calls, 1);
       expect(
-        await const FlutterSecureStorage().read(key: 'valora.refresh_token'),
+        await const FlutterSecureStorage().read(
+          key: 'valoranebius.refresh_token',
+        ),
         'new-refresh',
       );
       auth.close();

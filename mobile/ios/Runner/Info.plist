@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Speak pantry changes for review before saving.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Transcribe pantry commands so you can review and confirm them.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -25,7 +29,7 @@
 			<string>com.valora.auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>valora</string>
+				<string>valoranebius</string>
 			</array>
 		</dict>
 	</array>

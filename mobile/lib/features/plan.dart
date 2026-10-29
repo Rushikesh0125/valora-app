@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'first_day_plan.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
 import '../core/theme.dart';
@@ -31,6 +32,16 @@ class _PlanPageState extends State<PlanPage> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
+    if (s.firstDayPlanner != null)
+      return PageContent(
+        pageKey: 'first-day-plan',
+        children: [
+          FirstDayPlanView(
+            planner: s.firstDayPlanner!,
+            onReview: () => widget.onPanel(Panel.rules),
+          ),
+        ],
+      );
     if (s.holdReason != null) {
       return PageContent(
         pageKey: 'plan-hold',

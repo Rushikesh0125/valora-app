@@ -130,7 +130,7 @@ function providerConfig(provider: Provider, env: Env, requestUrl?: URL) {
 }
 
 function isAllowedMobileRedirect(url: URL): boolean {
-  return url.protocol === "valora:" && url.hostname === "auth" && url.pathname === "/callback";
+  return url.protocol === "valoranebius:" && url.hostname === "auth" && url.pathname === "/callback";
 }
 
 function mobileRedirectUri(env: Env): URL {
