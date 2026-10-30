@@ -1,3 +1,4 @@
+import {handleQloo,QlooError,consumeRate} from './qloo.js';
 import { PantryInterpreter } from './pantry-interpreter.js';
 import { PersonalFoodChat } from './personal-food-chat.js';
 import { MealPlanChanges } from './meal-plan-changes.js';
@@ -123,6 +124,12 @@ export default {
       const repository = new D1UserRepository(database(env));
       principal = await repository.resolvePrincipal(principal);
       const userId = principal.userId;
+      if(url.pathname.startsWith('/v1/qloo/')) {
+        const result=await handleQloo(request,env,principal);
+        result.headers.forEach((value,key)=>headers.set(key,value));
+        return new Response(result.body,{status:result.status,headers});
+      }
+      if(request.method==='POST'&&['/v1/ai/respond','/v1/pantry/interpret','/v1/meal-plan/proposals','/v1/first-day-plan'].includes(url.pathname)&&env.QLOO_ENABLED==='true')await consumeRate(database(env),userId,6,'ai');
       if (url.pathname === '/v1/meal-plan/proposals' && request.method === 'POST') {
         const body=parseBody(z.object({request:z.string().trim().min(1).max(12000)}).strict(),await request.json().catch(()=>null));
         if(body instanceof Response) return body;
@@ -185,6 +192,7 @@ export default {
       if (memoryMatch && request.method === "DELETE") return await repository.deleteMemory(userId,memoryMatch[1]) ? response({data:{deleted:true}},200,headers) : response({error:"not_found"},404,headers);
       return response({error:"not_found"},404,headers);
     } catch (e) {
+      if (e instanceof QlooError) return response({error:e.message},e.status,headers);
       if (e instanceof FoodStateConflict) return response({error:"food_state_conflict"},409,headers);
       if (e instanceof FoodStateTooLarge) return response({error:"food_state_too_large"},413,headers);
       if (e instanceof NebiusError) return response({error:e.code}, e.code === "ai_provider_timeout" ? 504 : e.code === "ai_provider_rate_limited" ? 429 : e.code === "ai_provider_unavailable" ? 503 : 502,headers);

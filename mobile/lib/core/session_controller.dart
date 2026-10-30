@@ -1516,6 +1516,11 @@ class SessionController extends ChangeNotifier {
           'To get a Nemotron reply, enable Nebius cloud AI in AI settings, then retry.',
         'local_ai_failed_consent_required' =>
           'Gemma could not answer on this device. Enable cloud AI in AI settings to use the fallback, then retry.',
+        'qloo_taste_required' => 'Choose and save a public taste in Discover, then retry.',
+        'qloo_no_recipe_affinities' => 'Qloo returned no supported cuisine matches for this request. Your plan is unchanged; try another taste in Discover.',
+        'qloo_key_pending' => 'Qloo taste personalization is not configured yet. Your saved plan is unchanged.',
+        'qloo_unavailable' || 'qloo_request_failed' || 'qloo_invalid_response' || 'qloo_invalid_redirect' => 'Qloo taste analysis could not complete. Your saved plan is unchanged. Please retry.',
+        'qloo_rate_limited' || 'account_rate_limited' => 'Please wait a minute and retry.',
         'ai_provider_unavailable' =>
           'Cloud AI is unavailable. Check the provider setup or retry shortly.',
         'ai_provider_timeout' =>

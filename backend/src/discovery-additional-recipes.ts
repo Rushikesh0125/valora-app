@@ -1,0 +1,58 @@
+import type { Recipe } from './discovery-recipes.js';
+
+// Original preparation specifications, not copied from the knowledge sources.
+// Desk review checks named ingredients against the method; kitchen validation,
+// packaged-product provenance, nutrition and clinical suitability remain unknown.
+function recipe(id:string,name:string,cuisine:string,minutes:number,ingredients:string[],steps:string[],texture:string):Recipe {
+  return {id,name,cuisine,minutes,ingredients,steps,texture,servings:1,soft:false,mild:true,
+    spiceAdjustment:'No chilli is included. Do not add sauces or toppings without rechecking their ingredients.',
+    eatingPattern:'vegan',source:'Original Valora preparation specification; desk-reviewed for ingredient/method consistency, not clinically or kitchen validated.',
+    license:'MIT',reviewStatus:'desk-reviewed',budgetStatus:'unverified',priceInr:null};
+}
+const rotiMethod = 'While the other pan cooks, mix the flour with hot water a little at a time into a pliable dough. Divide into two small balls, pat each between clean sheets into a thin disc and cook on a hot dry griddle about 2 minutes per side until cooked through.';
+export const additionalRecipes: readonly Recipe[] = [
+  recipe('jowar-masoor-plate','Jowar roti with masoor dal and carrot','indian',30,
+    ['1/3 cup pure jowar (sorghum) flour','1/4 cup hot water for dough, adjusted as needed','1/4 cup red lentils','1/2 carrot, finely grated','1/8 tsp turmeric','1 1/2 cups water for dal'],
+    ['Rinse red lentils. Simmer with carrot, turmeric and the dal water for 20–25 minutes until tender, adding water as needed.',rotiMethod,'Serve the two jowar rotis with the carrot dal. Use only the specified flour; do not dust with wheat flour.'],
+    'Flatbread with tender lentils and grated carrot; not a swallowing-suitability claim'),
+  recipe('jowar-bean-plate','Jowar roti with tomato white beans','indian',25,
+    ['1/3 cup pure jowar (sorghum) flour','1/4 cup hot water for dough, adjusted as needed','3/4 cup canned cooked white beans, drained','1 tomato, diced','1/8 tsp cumin','1/2 cup water for beans'],
+    ['Rinse canned beans and check their label. Simmer beans, tomato, cumin and water for 12–15 minutes, lightly crushing some beans.',rotiMethod,'Serve the freshly cooked jowar rotis with tomato beans. Do not substitute a mixed-flour roti.'],
+    'Flatbread with moist bean topping'),
+  recipe('jowar-pea-plate','Jowar roti with peas and courgette','indian',30,
+    ['1/3 cup pure jowar (sorghum) flour','1/4 cup hot water for dough, adjusted as needed','3/4 cup peas','1/2 courgette, diced','1/8 tsp turmeric','3/4 cup water for vegetables'],
+    ['Simmer peas, courgette and turmeric in the vegetable water covered for 15–20 minutes until tender, adding water as needed.',rotiMethod,'Lightly mash some peas and serve with the two rotis. Keep the jowar flour separate from wheat preparation surfaces.'],
+    'Flatbread with tender peas and courgette'),
+  recipe('wheat-roti-dal-plate','Wheat roti with carrot masoor dal','indian',30,
+    ['1/3 cup whole wheat flour','1/4 cup hot water for dough, adjusted as needed','1/4 cup red lentils','1/2 carrot, finely grated','1/8 tsp cumin','1 1/2 cups water for dal'],
+    ['Rinse lentils and simmer with carrot, cumin and dal water for 20–25 minutes until tender.',rotiMethod,'Serve the wheat rotis with dal. This preparation contains wheat.'],
+    'Wheat flatbread with tender carrot dal'),
+  recipe('besan-chilla','Carrot besan chilla','indian',25,
+    ['1/2 cup besan (chickpea flour)','1/2 carrot, finely grated','1/8 tsp cumin','1/2 cup water','1 tsp olive oil'],
+    ['Whisk besan, carrot, cumin and water into a pourable batter.','Brush a non-stick griddle with the measured oil. Spread two thin pancakes; cook on medium heat about 3–4 minutes per side until cooked through.'],
+    'Tender savoury pancakes'),
+  recipe('ragi-banana-porridge','Ragi and banana porridge','indian',20,
+    ['1/4 cup ragi (finger millet) flour','1 cup water','1 small ripe banana, mashed'],
+    ['Mix ragi flour into cold water until smooth.','Heat gently while stirring and simmer 10–12 minutes until cooked and thickened.','Remove from heat, stir in mashed banana and let cool to a comfortable eating temperature.'],
+    'Smooth grain porridge with mashed banana'),
+  recipe('bean-carrot-rice','White bean and carrot rice bowl','indian',25,
+    ['1 cup freshly cooked rice','3/4 cup canned cooked white beans, drained','1 carrot, finely diced','1/8 tsp cumin','1 tsp olive oil','3/4 cup water'],
+    ['Check the bean label, drain and rinse.','Simmer carrot with cumin, olive oil and water covered for 12–15 minutes until tender.','Add beans and freshly cooked rice; cover and heat until steaming throughout. Rice cooking time is additional if not already prepared.'],
+    'Rice with tender beans and carrot'),
+  recipe('polenta-pear','Pear breakfast polenta','italian',20,
+    ['1/4 cup plain quick-cooking polenta (maize)','1 cup water','1 small pear, finely diced'],
+    ['Check the polenta label for additional ingredients. Bring the water and pear to a simmer.','Whisk in polenta and cook, stirring, for the package cooking time until tender, adding water as needed. Use a quick-cooking product taking no more than 15 minutes.'],
+    'Soft maize porridge with cooked pear'),
+  recipe('apple-oat-porridge','Apple breakfast oats','italian',15,
+    ['1/3 cup plain rolled oats','1 small apple, finely grated','1 cup water'],
+    ['Check the oat label for grain cross-contact.','Simmer oats, apple and water for 10–12 minutes, stirring until cooked; add water if needed.'],
+    'Moist oat porridge'),
+  recipe('quick-carrot-congee','Quick carrot breakfast congee','chinese',20,
+    ['1 cup freshly cooked rice','1/2 carrot, finely grated','1/8 tsp grated ginger','1 1/2 cups water'],
+    ['Simmer cooked rice, carrot, ginger and water for 15 minutes, stirring until the rice starts to break down.','Add water to loosen if needed and serve steaming hot, without unlisted toppings. Cooking rice from raw takes additional time.'],
+    'Moist rice porridge with grated carrot'),
+  recipe('millet-pear-porridge','Millet and pear breakfast porridge','chinese',25,
+    ['1/4 cup finely ground millet flour','1 small pear, finely grated','1 1/4 cups water'],
+    ['Check that the flour contains only millet. Mix flour into cold water until smooth.','Add pear, heat while stirring and simmer gently for 15–20 minutes until cooked, adding water as needed.'],
+    'Soft millet porridge with pear'),
+];

@@ -14,7 +14,9 @@
     "GOOGLE_CLIENT_ID": "835167251935-uv31077qlqatidou04dnd3475a0f9ub5.apps.googleusercontent.com",
     "GOOGLE_CALLBACK_URL": "https://valora-nebius-api.jadhav-rushikesh-ggl.workers.dev/v1/auth/google/callback",
     "MOBILE_AUTH_REDIRECT_URI": "valoranebius://auth/callback",
-    "AI_NEBIUS_MODEL": "nvidia/nemotron-3-super-120b-a12b"
+    "AI_NEBIUS_MODEL": "nvidia/nemotron-3-super-120b-a12b",
+    "QLOO_ENABLED": "true",
+    "QLOO_API_URL": "https://hackathon.api.qloo.com"
   },
   "d1_databases": [
     {

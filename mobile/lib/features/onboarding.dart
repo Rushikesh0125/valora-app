@@ -548,7 +548,7 @@ class ProfileConfirmation extends StatelessWidget {
                 : (value) => session.setFirstPlanConsent(value ?? false),
             title: const Text('Prepare my remaining meals today with Nebius'),
             subtitle: const Text(
-              'Allow NVIDIA Nemotron via Nebius to receive my diet, cuisines, cooking time, budget and meal coverage. Allergies and foods to avoid are checked on the server. Saved health details are not sent. Target: under five minutes after confirming. Cloud consent can be turned off later.',
+              'Allow NVIDIA Nemotron via Nebius to receive my diet, cuisines, cooking time, budget and meal coverage. Allergies and foods to avoid are checked on the server. Qloo receives public taste IDs and cuisine signals to rank candidates; health, allergies and chat stay out of Qloo requests. Saved health details are not sent. Target: under five minutes after confirming. Cloud consent can be turned off later.',
             ),
           ),
         const InfoNote(

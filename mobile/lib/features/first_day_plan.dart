@@ -47,7 +47,7 @@ class FirstDayPlanView extends StatelessWidget {
               ),
             ] else if (needsConsent) ...[
               const Text(
-                'Allow NVIDIA Nemotron via Nebius to use your diet, cuisine, cooking time, budget and meal coverage for your first-day plan. Allergies and foods to avoid filter recipes on the server. Saved health details are not sent. You can turn cloud AI off in AI settings.',
+                'Allow NVIDIA Nemotron via Nebius to use your diet, cuisine, cooking time, budget and meal coverage for your first-day plan. Allergies and foods to avoid filter recipes on the server. Qloo receives public taste IDs and cuisine signals to rank candidates; health, allergies and chat stay out of Qloo requests. Saved health details are not sent. You can turn cloud AI off in AI settings.',
               ),
               const SizedBox(height: 8),
               FilledButton(
@@ -100,6 +100,11 @@ class FirstDayPlanView extends StatelessWidget {
                     color: ValoraColors.muted,
                   ),
                 ),
+              if (data['explanation'] is String)
+                Text(
+                  data['explanation'] as String,
+                  style: const TextStyle(fontSize: 12),
+                ),
               const Text(
                 'Starter meal suggestions. Prices and nutrition are not verified; check ingredients and portions before cooking.',
                 style: TextStyle(fontSize: 11, color: ValoraColors.muted),
@@ -113,6 +118,10 @@ class FirstDayPlanView extends StatelessWidget {
               const Text(
                 'Your plan is not ready. Check your connection and try again. We will not substitute a sample plan.',
               ),
+              if (data['error'] is String)
+                Text(
+                  'Reason: ${data['error']}. For qloo_taste_required, select and save tastes in Discover.',
+                ),
               TextButton(
                 onPressed: () => planner.refresh(retry: true),
                 child: const Text('Retry first-day plan'),

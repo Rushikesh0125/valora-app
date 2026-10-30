@@ -22,7 +22,7 @@ class BackendApi {
             'POST',
             '/v1/pantry/interpret',
             body: {'transcript': transcript},
-            timeout: const Duration(seconds: 60),
+            timeout: const Duration(seconds: 95),
           ))['data']
           as Map<String, dynamic>;
 
@@ -40,7 +40,7 @@ class BackendApi {
               'retry': retry,
               'confirmedPreferences': confirmedPreferences,
             },
-            timeout: const Duration(seconds: 60),
+            timeout: const Duration(seconds: 95),
           ))['data']
           as Map<String, dynamic>;
 
@@ -49,12 +49,28 @@ class BackendApi {
             'POST',
             '/v1/meal-plan/proposals',
             body: {'request': request},
-            timeout: const Duration(seconds: 60),
+            timeout: const Duration(seconds: 95),
           ))['data']
           as Map<String, dynamic>;
   Future<Map<String, dynamic>> confirmMealChange(String id) async =>
       (await _request('POST', '/v1/meal-plan/proposals/$id/confirm'))['data']
           as Map<String, dynamic>;
+
+  Future<Map<String, dynamic>> qlooRequest(
+    String method,
+    String path, [
+    Map<String, dynamic>? body,
+  ]) async {
+    if (!path.startsWith('/v1/qloo/'))
+      throw const BackendException('invalid_qloo_route');
+    return (await _request(
+          method,
+          path,
+          body: body,
+          timeout: const Duration(seconds: 95),
+        ))['data']
+        as Map<String, dynamic>;
+  }
 
   Future<Map<String, dynamic>?> getProfile() => _get('/v1/profile');
   Future<Map<String, dynamic>> getFoodState() async =>
@@ -96,7 +112,7 @@ class BackendApi {
   }) => _request(
     'POST',
     '/v1/ai/respond',
-    timeout: const Duration(seconds: 60),
+    timeout: const Duration(seconds: 95),
     body: {
       'task': task,
       'complexity': complexity,

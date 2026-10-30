@@ -1,7 +1,9 @@
+import {additionalRecipes} from './discovery-additional-recipes.js';
 export type Meal = 'breakfast' | 'lunch' | 'dinner';
 export interface StarterRecipe {
   id: string; name: string; minutes: number; vegan: boolean; cuisines: string[];
   slots: Meal[]; ingredients: string[]; steps: string[];
+  source?:string; license?:string; servings?:number;
 }
 export const starterRecipes: StarterRecipe[] = [
   {id:'fruit-oats',name:'Banana overnight oats',minutes:5,vegan:true,cuisines:['International'],slots:['breakfast'],ingredients:['rolled oats','banana','water or unsweetened plant milk'],steps:['Combine oats and liquid and refrigerate overnight.','Add sliced banana before serving.'],},
@@ -29,6 +31,10 @@ export const starterRecipes: StarterRecipe[] = [
 
 ];
 
+const stapleRecipeIds=['jowar-masoor-plate','jowar-bean-plate','jowar-pea-plate','wheat-roti-dal-plate'];
+for(const r of additionalRecipes.filter(r=>stapleRecipeIds.includes(r.id)))starterRecipes.push({id:r.id,name:r.name,minutes:r.minutes,vegan:true,cuisines:['Indian'],slots:['lunch','dinner'],ingredients:r.ingredients,steps:r.steps,source:r.source,license:r.license,servings:r.servings});
+for(const recipe of starterRecipes)Object.assign(recipe,{source:recipe.source??'Original Valora recipe specification; desk-reviewed, not clinically or kitchen validated.',license:recipe.license??'MIT',servings:recipe.servings??1});
+
 export function remainingMeals(now: Date, timeZone: string, coverage: string): {date: string; slots: Meal[]} {
   const parts = new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(now);
   const part = (name: string) => parts.find(p => p.type === name)!.value;
@@ -44,6 +50,7 @@ export function eligibleRecipes(eatingPattern: string, minutes: number, slot: Me
 
 // These tags describe the fixed recipe ingredients, not packaged-product cross-contact.
 const recipeAllergens: Record<string,string[]> = {
+  'jowar-masoor-plate':[],'jowar-bean-plate':[],'jowar-pea-plate':[],'wheat-roti-dal-plate':['wheat','gluten'],
   'quick-lentil-soup':[], 'carrot-lentil-soup':[], 'tomato-white-bean-soup':[],
   'rice-porridge':[], 'chickpea-chaat':[], 'vegetable-poha':[], 'chickpea-bowl':[], 'vegetable-rice':[], 'quick-dal':[], 'vegetable-couscous':['wheat','gluten'],
   'fruit-oats':['gluten'], 'banana-toast':['wheat','gluten'], 'yogurt-bowl':['milk','gluten'],
@@ -94,13 +101,14 @@ export function suitableRecipes(profile:{eatingPattern:string;cookingMinutes:num
   });
 }
 
-export function preferredRecipes(profile:Parameters<typeof suitableRecipes>[0]&{cuisines:string[];otherCuisine:string;mealStyle?:string},slot:Meal) {
-  const safe=suitableRecipes(profile,slot);
+export function preferredRecipes(profile:Parameters<typeof suitableRecipes>[0]&{cuisines:string[];otherCuisine:string;mealStyle?:string;staples?:{meal:Meal;staple:string}[]},slot:Meal) {
+  const staple=profile.staples?.find(p=>p.meal===slot)?.staple;
+  const safe=suitableRecipes(profile,slot).filter(r=>!staple||(staple==='rice'&&['vegetable-rice','vegetable-poha','rice-porridge'].includes(r.id))||((staple==='jowar-roti'||staple==='roti')&&r.id.startsWith('jowar-'))||(staple==='roti'&&r.id==='wheat-roti-dal-plate'));
   const cuisines=profile.cuisines.flatMap(c=>c==='Other'?profile.otherCuisine.split(/[,;]/):[c]).map(c=>c.trim().toLowerCase());
   const matching=!profile.cuisines.length||profile.cuisines.includes('Anything')?safe:safe.filter(r=>r.cuisines.some(c=>cuisines.includes(c.toLowerCase())));
   if(profile.mealStyle&&slot!=='breakfast') {
     const soups=matching.filter(r=>r.id.endsWith('-soup'));if(soups.length)return soups;
-    const warm=matching.filter(r=>['vegetable-rice','quick-dal','paneer-vegetables','tomato-basil-pasta','vegetable-noodles','vegetable-poha'].includes(r.id));
+    const warm=matching.filter(r=>['vegetable-rice','quick-dal','paneer-vegetables','tomato-basil-pasta','vegetable-noodles','vegetable-poha',...stapleRecipeIds].includes(r.id));
     return warm;
   }
   return matching;

@@ -37,7 +37,7 @@ class AiSettingsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'When enabled, your messages and bounded conversation history are sent through the Valora server to Nebius Token Factory. Saved food restrictions always filter meal choices on the server; Nebius receives eligible recipe candidates. First-day planning uses the food preferences you confirm during onboarding. Saved health fields are not automatically included; anything you type is sent. You can disable consent at any time.',
+                    'When enabled, your messages and bounded conversation history are sent through the Valora server to Nebius Token Factory. Saved food restrictions always filter meal choices on the server; Nebius receives eligible recipe candidates. First-day planning uses the food preferences you confirm during onboarding. Qloo receives only selected public taste IDs and allowlisted cuisine signals; allergies, health details and raw chat are not sent to Qloo. Saved health fields are not automatically included; anything you type is sent. You can disable consent at any time.',
                     style: TextStyle(
                       fontSize: 11,
                       height: 1.5,

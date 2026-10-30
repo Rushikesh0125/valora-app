@@ -27,3 +27,8 @@ AI_NEBIUS_MODEL=nvidia/nemotron-3-super-120b-a12b
 # OPENAI_CLIENT_ID=...
 # OPENAI_CALLBACK_URL=http://localhost:8787/v1/auth/openai/callback
 # MOBILE_AUTH_REDIRECT_URI=valoranebius://auth/callback
+
+# Public taste personalization; server-side only. Qloo is never an inference provider.
+QLOO_API_KEY=
+QLOO_API_URL=https://hackathon.api.qloo.com
+QLOO_ENABLED=true
