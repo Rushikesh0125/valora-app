@@ -35,7 +35,7 @@ Flutter analysis: passed; Flutter tests: 46 passed and the same known baseline U
 failure remains. See NEBIUS_VALIDATION.md.
 
 Source baseline: https://github.com/Rushikesh0125/valora at commit 6c3645d.
-Variant: https://github.com/Rushikesh0125/valora-nebius.
+Variant: https://github.com/Rushikesh0125/valora-app.
 Implementation date: 25 October 2026. Track: Best Apps and Agents.
 Deadline: 30 October 2026, 10:30 PM IST.
 
