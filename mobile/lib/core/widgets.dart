@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'tag_suggestions.dart';
 import 'package:flutter/material.dart';
 import 'models.dart';
@@ -491,17 +492,73 @@ class TagField extends StatefulWidget {
     this.hint,
     this.maxLength = 300,
     this.suggestions = const [],
+    this.onLookup,
   });
   final String label, value;
   final String? hint;
   final int maxLength;
   final List<TagSuggestion> suggestions;
+  final Future<List<TagSuggestion>> Function(String query)? onLookup;
   final ValueChanged<String> onChanged;
   @override
   State<TagField> createState() => _TagFieldState();
 }
 
 class _TagFieldState extends State<TagField> {
+  Timer? _lookupTimer;
+  int _lookupEpoch = 0;
+  bool _looking = false;
+  String? _lookupError;
+  List<TagSuggestion> _remote = [];
+  List<TagSuggestion> get _options {
+    final options = <String, TagSuggestion>{};
+    for (final option in [..._remote, ...widget.suggestions]) {
+      final key = option.id.toLowerCase();
+      final previous = options[key];
+      options[key] = previous == null
+          ? option
+          : TagSuggestion(
+              previous.id,
+              previous.label,
+              {...previous.aliases, ...option.aliases, option.label}.toList(),
+            );
+    }
+    return options.values.toList();
+  }
+
+  void _scheduleLookup() {
+    _lookupTimer?.cancel();
+    final epoch = ++_lookupEpoch;
+    final query = input.text.trim();
+    _remote = [];
+    _lookupError = null;
+    _looking = false;
+    if (widget.onLookup == null || query.length < 2) return;
+    _looking = true;
+    _lookupTimer = Timer(
+      const Duration(milliseconds: 500),
+      () => unawaited(_loadLookup(query, epoch)),
+    );
+  }
+
+  Future<void> _loadLookup(String query, int epoch) async {
+    try {
+      final result = await widget.onLookup!(query);
+      if (!mounted || epoch != _lookupEpoch) return;
+      setState(() {
+        _remote = result;
+        _looking = false;
+      });
+    } catch (_) {
+      if (!mounted || epoch != _lookupEpoch) return;
+      setState(() {
+        _looking = false;
+        _lookupError =
+            'Live suggestions are unavailable. Use a listed option or keep typing to retry.';
+      });
+    }
+  }
+
   final input = TextEditingController();
   late List<String> items = _parse(widget.value);
   String? _lastEmitted;
@@ -511,7 +568,7 @@ class _TagFieldState extends State<TagField> {
         .split(RegExp(r'[,;\n]'))
         .map((v) {
           final term = v.trim();
-          for (final option in widget.suggestions) {
+          for (final option in _options) {
             if (option.isExact(term)) return option.id;
           }
           return term;
@@ -526,6 +583,7 @@ class _TagFieldState extends State<TagField> {
     if (widget.value != oldWidget.value && widget.value != _lastEmitted) {
       items = _parse(widget.value);
       input.clear();
+      _scheduleLookup();
     }
   }
 
@@ -551,12 +609,15 @@ class _TagFieldState extends State<TagField> {
     setState(() {
       items = _parse([...items, value].join(', '));
       input.clear();
+      _scheduleLookup();
     });
     _emit();
   }
 
   @override
   void dispose() {
+    _lookupTimer?.cancel();
+    _lookupEpoch++;
     input.dispose();
     super.dispose();
   }
@@ -611,7 +672,7 @@ class _TagFieldState extends State<TagField> {
                             (items.isEmpty ? 0 : 2))
                         .clamp(1, widget.maxLength),
                 onChanged: (_) {
-                  setState(() {});
+                  setState(_scheduleLookup);
                   _emit();
                 },
                 onFieldSubmitted: (_) => _add(),
@@ -629,7 +690,17 @@ class _TagFieldState extends State<TagField> {
             ),
           ],
         ),
-        if (input.text.trim().isNotEmpty && widget.suggestions.isNotEmpty)
+        if (_looking)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Finding cuisine suggestions…',
+              style: TextStyle(fontSize: 11),
+            ),
+          ),
+        if (_lookupError != null)
+          Text(_lookupError!, style: const TextStyle(fontSize: 11)),
+        if (input.text.trim().isNotEmpty && _options.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Wrap(
@@ -637,7 +708,7 @@ class _TagFieldState extends State<TagField> {
               runSpacing: 6,
               children: [
                 for (final option
-                    in widget.suggestions
+                    in _options
                         .where(
                           (s) => s.matches(input.text) && !items.contains(s.id),
                         )
@@ -655,12 +726,20 @@ class _TagFieldState extends State<TagField> {
                         ? () => _add(option.id)
                         : null,
                   ),
-                if (!widget.suggestions.any((s) => s.isExact(input.text)))
+                if (!_options.any((s) => s.isExact(input.text)))
                   ActionChip(
                     label: Text('Add custom: ${input.text.trim()}'),
                     onPressed: () => _add(),
                   ),
               ],
+            ),
+          ),
+        if (widget.onLookup != null)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+              'Powered by Qloo',
+              style: TextStyle(fontSize: 10, color: ValoraColors.muted),
             ),
           ),
       ],

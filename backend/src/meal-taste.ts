@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {QlooClient,QlooError,tastesSchema,type Signal} from './qloo.js';
+import {QlooClient,QlooError,type Signal} from './qloo.js';
 import type {StarterRecipe} from './starter-recipes.js';
 import type {Env,ProfileRecord} from './types.js';
 
@@ -12,20 +12,24 @@ export const mealTasteSchema=z.object({
 }).strict();
 export type MealTaste=z.infer<typeof mealTasteSchema>;
 
-/** Only previously selected public signals leave the Worker; profile fields do not. */
+/** Only public cuisine IDs projected from saved preferences leave the Worker; private profile fields do not. */
 export async function mealSignals(db:D1Database,userId:string,profile:ProfileRecord):Promise<Signal[]> {
-  const row=await db.prepare('SELECT selections FROM qloo_tastes WHERE user_id=?').bind(userId).first<{selections:string}>();
-  const selected=row?tastesSchema.parse(JSON.parse(row.selections)).selections:[];
-  const cuisines=[...profile.cuisines.filter(c=>c!=='Other'),...(profile.cuisines.includes('Other')?profile.otherCuisine.split(/[,;\n]/):[])].map(c=>c.trim().toLowerCase());
-  const onboarding:Signal[]=cuisines.filter((c):c is typeof supported[number]=>supported.includes(c as typeof supported[number])).map(c=>({id:`urn:tag:genre:place:restaurant:${c}`,kind:'tag',label:c}));
-  return [...selected.slice(0,10-onboarding.length),...onboarding].filter((s,i,all)=>all.findIndex(v=>v.id===s.id&&v.kind===s.kind)===i);
+  const cuisines=[...profile.cuisines.filter(c=>!['Other','Anything'].includes(c)),...(profile.cuisines.includes('Other')?profile.otherCuisine.split(/[,;\n]/):[])].map(c=>c.trim()).filter(Boolean).slice(0,10);
+  const signals:Signal[]=[];
+  for(const cuisine of cuisines){
+    const canonical=cuisine.toLowerCase();
+    const resolved=await db.prepare("SELECT signal_id,label FROM qloo_resolved WHERE user_id=? AND kind='tag' AND lower(label)=? AND expires_at>unixepoch() ORDER BY expires_at DESC LIMIT 1").bind(userId,canonical).first<{signal_id:string;label:string}>();
+    if(resolved?.signal_id.startsWith('urn:tag:genre:place:restaurant:'))signals.push({id:resolved.signal_id,kind:'tag',label:resolved.label});
+    else if(supported.includes(canonical as typeof supported[number]))signals.push({id:`urn:tag:genre:place:restaurant:${canonical}`,kind:'tag',label:canonical});
+  }
+  return signals.filter((s,i,all)=>all.findIndex(v=>v.id===s.id)===i);
 }
 
-export async function mealTaste(env:Env,signals:Signal[],message=''):Promise<MealTaste> {
+export async function mealTaste(env:Env,signals:Signal[],message=''):Promise<MealTaste|null> {
   // A specific meal-cuisine request is a temporary public taste signal, never saved.
   const requested=supported.find(c=>new RegExp('\\b'+c+'\\b','i').test(message));
   const seeds=requested?[{id:`urn:tag:genre:place:restaurant:${requested}`,kind:'tag' as const,label:requested}]:signals;
-  if(!seeds.length)throw new QlooError('qloo_taste_required',422);
+  if(!seeds.length)return null;
   // Qloo omits input tags from related-tag results. Sending every catalog cuisine
   // would exclude the entire supported result set; use one cuisine anchor while
   // retaining the other explicit cuisine preferences locally.
@@ -53,7 +57,7 @@ export function tasteCuisines(taste:MealTaste):string[] {
   return [...new Set([...taste.affinities,...(taste.selectedCuisines??[])].map(a=>a.cuisine))];
 }
 export function tasteExplanation(taste:MealTaste):string {
-  return `Qloo taste affinities: ${taste.affinities.map(a=>a.label).join(', ')}.${taste.selectedCuisines?.length?' Your selected cuisines: '+taste.selectedCuisines.map(a=>a.label).join(', ')+'. These are your inputs, not returned affinity claims.':''} Valora maps returned affinities and your selected cuisines to reviewed recipes after checking your saved food restrictions, cooking time and meal preferences. A firm cuisine preference takes priority over related cuisines. Qloo does not assess health or allergen suitability.`;
+  return `Related cuisines: ${taste.affinities.map(a=>a.label).join(', ')}.${taste.selectedCuisines?.length?' Your saved cuisines: '+taste.selectedCuisines.map(a=>a.label).join(', ')+'.':''} Your saved food rules and cuisine preferences take priority. Taste analysis does not establish health or allergen suitability.`;
 }
 
 export function qlooEnabled(env:Env):boolean{return env.QLOO_ENABLED==='true';}
@@ -62,7 +66,7 @@ export function rankTaste<T extends Pick<StarterRecipe,'cuisines'>>(recipes:T[],
   if(!taste||!recipes.length)return recipes;
   const order=tasteCuisines(taste);
   const ranked=recipes.map(recipe=>({recipe,rank:Math.min(...recipe.cuisines.map(c=>{const i=order.indexOf(c.toLowerCase());return i<0?Infinity:i;}))})).filter(r=>Number.isFinite(r.rank)).sort((a,b)=>a.rank-b.rank);
-  if(!ranked.length)throw new QlooError('qloo_no_recipe_affinities',422);
+  if(!ranked.length)return recipes;
   // Give Nemotron choices within the best available cuisine, so affinity order has an observable effect.
   return ranked.filter(r=>r.rank===ranked[0].rank).map(r=>r.recipe);
 }

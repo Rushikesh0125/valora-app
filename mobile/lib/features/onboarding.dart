@@ -319,7 +319,7 @@ class FoodRulesFields extends StatelessWidget {
           TagField(
             'Which allergy?',
             value: p.otherAllergy,
-            suggestions: allergySuggestions,
+            suggestions: [...allergySuggestions, ...foodSuggestions],
             maxLength: 500,
             hint: 'e.g. sesame',
             onChanged: (v) => session.updateProfile(() => p.otherAllergy = v),
@@ -488,15 +488,25 @@ class CuisineFields extends StatelessWidget {
           selected: p.cuisines,
           onSelect: session.toggleCuisine,
         ),
-        if (p.cuisines.contains('Other'))
-          TagField(
-            'Which cuisine?',
-            value: p.otherCuisine,
-            suggestions: cuisineSuggestions,
-            maxLength: 300,
-            hint: 'e.g. Korean',
-            onChanged: (v) => session.updateProfile(() => p.otherCuisine = v),
-          ),
+        TagField(
+          'Which cuisine?',
+          value: p.cuisines.contains('Other') ? p.otherCuisine : '',
+          suggestions: cuisineSuggestions,
+          onLookup: session.backendApi == null
+              ? null
+              : session.searchCuisineSuggestions,
+          maxLength: 300,
+          hint: 'e.g. Korean',
+          onChanged: (v) => session.updateProfile(() {
+            p.otherCuisine = v;
+            if (v.trim().isEmpty) {
+              p.cuisines.remove('Other');
+            } else {
+              p.cuisines.add('Other');
+              p.cuisines.remove('Anything');
+            }
+          }),
+        ),
         const SizedBox(height: 19),
         const FieldLabel('When should we suggest your next plan?'),
         Segments(
@@ -546,9 +556,9 @@ class ProfileConfirmation extends StatelessWidget {
             onChanged: session.savingAccount
                 ? null
                 : (value) => session.setFirstPlanConsent(value ?? false),
-            title: const Text('Prepare my remaining meals today with Nebius'),
+            title: const Text('Prepare my remaining meals today'),
             subtitle: const Text(
-              'Allow NVIDIA Nemotron via Nebius to receive my diet, cuisines, cooking time, budget and meal coverage. Allergies and foods to avoid are checked on the server. Qloo receives public taste IDs and cuisine signals to rank candidates; health, allergies and chat stay out of Qloo requests. Saved health details are not sent. Target: under five minutes after confirming. Cloud consent can be turned off later.',
+              'Use my saved food preferences, cooking time, budget and meal coverage to prepare today’s meals. Food restrictions are checked on the server; taste analysis receives only public cuisine signals. Saved health details are not sent. Target: under five minutes after confirming. Cloud AI consent can be turned off later.',
             ),
           ),
         const InfoNote(

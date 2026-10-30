@@ -72,7 +72,7 @@ export class FirstDayPlanService {
     const signals=qlooEnabled(this.env)?await mealSignals(this.db,userId,profile):[];
     let remaining;
     try {remaining=remainingMeals(new Date(),snapshot.timeZone,snapshot.coverage);} catch {return {hold:'invalid_timezone'} as const;}
-    const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({...snapshot,...(qlooEnabled(this.env)?{personalization:"qloo-nebius-v1",signals:signals.map(s=>({id:s.id,kind:s.kind}))}:{})}))));
+    const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({...snapshot,...(qlooEnabled(this.env)?{personalization:"saved-cuisines-v2",signals:signals.map(s=>({id:s.id,kind:s.kind}))}:{})}))));
     const fingerprint=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
     return {snapshot,remaining,fingerprint,signals};
   }

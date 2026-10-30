@@ -370,6 +370,32 @@ class SessionController extends ChangeNotifier {
   String authError = '';
   String locale = 'en-IN';
   int _accountEpoch = 0, _revision = 0, _savedRevision = 0;
+  Future<List<TagSuggestion>> searchCuisineSuggestions(String query) async {
+    final api = backendApi;
+    final epoch = _accountEpoch;
+    if (api == null || !signedIn)
+      throw const BackendException('session_changed');
+    final data = await api.qlooRequest('POST', '/v1/qloo/search', {
+      'query': query,
+      'kind': 'cuisine',
+    });
+    if (_disposed || epoch != _accountEpoch || !signedIn)
+      throw const BackendException('session_changed');
+    const supported = {
+      'indian',
+      'italian',
+      'chinese',
+      'asian',
+      'mediterranean',
+      'mexican',
+    };
+    return (data['choices'] as List)
+        .cast<Map<String, dynamic>>()
+        .where((c) => supported.contains((c['label'] as String).toLowerCase()))
+        .map((c) => TagSuggestion(c['label'] as String, c['label'] as String))
+        .toList();
+  }
+
   int get accountGeneration => _accountEpoch;
   int foodRecordsGeneration = 0;
   int _foodVersion = 0, _foodRevision = 0, _savedFoodRevision = 0;
@@ -1337,7 +1363,7 @@ class SessionController extends ChangeNotifier {
       if (_disposed || epoch != _accountEpoch) return;
       cloudAiConsent = consent;
       aiSettingsMessage = enabled
-          ? 'NVIDIA Nemotron via Nebius enabled. Messages and selected context are sent through the Valora server to Nebius.'
+          ? 'Cloud AI enabled. Messages and selected context are sent through the Valora server.'
           : 'Cloud AI disabled.';
     } catch (e) {
       if (_disposed || epoch != _accountEpoch) return;
@@ -1429,7 +1455,7 @@ class SessionController extends ChangeNotifier {
         'proposal' =>
           'Here is a change for your ${result!['meal']}. Your saved meal stays the same until you confirm.',
         'consent_required' =>
-          'Enable Nebius consent in AI settings before requesting a meal change.',
+          'Enable cloud AI consent in AI settings before requesting a meal change.',
         'not_ready' =>
           'Prepare your first meal plan in My Plan first, then ask me to change a meal.',
         'plan_outdated' =>
@@ -1513,22 +1539,30 @@ class SessionController extends ChangeNotifier {
         'on_device_ai_unsupported_platform' =>
           'On-device Gemma testing is available in the Android and iOS apps.',
         'cloud_ai_consent_required' =>
-          'To get a Nemotron reply, enable Nebius cloud AI in AI settings, then retry.',
+          'To get a personalized reply, enable cloud AI in AI settings, then retry.',
         'local_ai_failed_consent_required' =>
           'Gemma could not answer on this device. Enable cloud AI in AI settings to use the fallback, then retry.',
-        'qloo_taste_required' => 'Choose and save a public taste in Discover, then retry.',
-        'qloo_no_recipe_affinities' => 'Qloo returned no supported cuisine matches for this request. Your plan is unchanged; try another taste in Discover.',
-        'qloo_key_pending' => 'Qloo taste personalization is not configured yet. Your saved plan is unchanged.',
-        'qloo_unavailable' || 'qloo_request_failed' || 'qloo_invalid_response' || 'qloo_invalid_redirect' => 'Qloo taste analysis could not complete. Your saved plan is unchanged. Please retry.',
-        'qloo_rate_limited' || 'account_rate_limited' => 'Please wait a minute and retry.',
+        'qloo_taste_required' =>
+          'Check your saved cuisine preferences in You, then retry.',
+        'qloo_no_recipe_affinities' =>
+          'No matching cuisine was found for this request. Your plan is unchanged; check your saved preferences.',
+        'qloo_key_pending' =>
+          'Taste personalization is unavailable right now. Your saved plan is unchanged.',
+        'qloo_unavailable' ||
+        'qloo_request_failed' ||
+        'qloo_invalid_response' ||
+        'qloo_invalid_redirect' =>
+          'Taste analysis could not complete. Your saved plan is unchanged. Please retry.',
+        'qloo_rate_limited' ||
+        'account_rate_limited' => 'Please wait a minute and retry.',
         'ai_provider_unavailable' =>
           'Cloud AI is unavailable. Check the provider setup or retry shortly.',
         'ai_provider_timeout' =>
-          'Nebius took too long to reply. Your message is still here; retry shortly.',
+          'The assistant took too long to reply. Your message is still here; retry shortly.',
         'ai_provider_rate_limited' =>
-          'Nebius is busy. Wait a moment and retry.',
+          'The assistant is busy. Wait a moment and retry.',
         'ai_provider_invalid_response' =>
-          'Nebius returned an incomplete or invalid answer. Please retry.',
+          'The assistant returned an incomplete answer. Please retry.',
         'ai_provider_request_failed' =>
           'The cloud provider could not complete this request. Please retry shortly.',
         'unauthorized' => 'Your sign-in expired. Sign in again to continue.',

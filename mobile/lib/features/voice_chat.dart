@@ -127,7 +127,7 @@ class _VoiceChatSheetState extends State<VoiceChatSheet>
                 'Review the transcript, then use it in chat. Nothing is sent or saved until you send the message.',
           ),
           const Text(
-            'Your device’s speech service transcribes audio and may use its network service. Valora sends only the message text to Nebius after cloud consent.',
+            'Your device’s speech service transcribes audio and may use its network service. Valora sends only the message text to cloud AI after consent.',
             style: TextStyle(fontSize: 11),
           ),
           const SizedBox(height: 12),

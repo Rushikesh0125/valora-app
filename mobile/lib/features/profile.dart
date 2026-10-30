@@ -159,7 +159,7 @@ class ProfilePage extends StatelessWidget {
             'AI & model settings',
             session.backendApi == null
                 ? 'Connect the Valora API to enable AI'
-                : 'NVIDIA Nemotron via Nebius · cloud consent',
+                : 'Personal meal assistant · cloud consent',
             () async {
               if (session.backendApi != null) await session.refreshAiSettings();
               if (!context.mounted) return;

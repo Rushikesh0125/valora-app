@@ -144,7 +144,7 @@ class _PantryVoicePanelState extends State<PantryVoicePanel>
       if (api == null) {
         setState(
           () => error =
-              'For natural language, connect your account and enable Nebius AI. You can also use “add rice one kg and milk two litres”.',
+              'For natural language, connect your account and enable cloud AI. You can also use “add rice one kg and milk two litres”.',
         );
         return;
       }
@@ -164,7 +164,7 @@ class _PantryVoicePanelState extends State<PantryVoicePanel>
             () => error =
                 e is BackendException &&
                     e.message == 'cloud_ai_consent_required'
-                ? 'Enable Nebius cloud AI in AI settings to interpret natural language.'
+                ? 'Enable cloud AI in AI settings to interpret natural language.'
                 : 'Could not interpret the list. Your pantry is unchanged. Check the transcript and retry.',
           );
         return;
@@ -284,7 +284,7 @@ class _PantryVoicePanelState extends State<PantryVoicePanel>
       ),
       const SizedBox(height: 8),
       const Text(
-        'Your device’s speech service transcribes audio and may use its network service. For natural language, the transcript is sent to Nebius after cloud consent. Audio is not sent to Nebius by Valora.',
+        'Your device’s speech service transcribes audio and may use its network service. For natural language, the transcript is sent to cloud AI after consent. Valora does not send the audio to its AI service.',
         style: TextStyle(fontSize: 11),
       ),
       const SizedBox(height: 12),

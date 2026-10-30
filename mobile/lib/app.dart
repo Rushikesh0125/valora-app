@@ -1,4 +1,3 @@
-import 'features/discover.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -376,13 +375,6 @@ class _AppShellState extends State<_AppShell> {
                       ),
                 InsightsPage(session: s, onLog: () => showIntake(context, s)),
                 ProfilePage(session: s, onPanel: _panel),
-                if (s.backendApi != null)
-                  DiscoverPage(
-                    key: ValueKey('discover-${s.accountGeneration}'),
-                    session: s,
-                  )
-                else
-                  const Center(child: Text('Sign in to discover your tastes.')),
               ],
             ),
           ),
@@ -411,11 +403,6 @@ class _AppShellState extends State<_AppShell> {
                 icon: Icon(Icons.person_outline_rounded),
                 selectedIcon: Icon(Icons.person_rounded),
                 label: 'You',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.explore_outlined),
-                selectedIcon: Icon(Icons.explore),
-                label: 'Discover',
               ),
             ],
           ),

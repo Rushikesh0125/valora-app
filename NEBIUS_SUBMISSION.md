@@ -1,3 +1,5 @@
+> UX update — 30 October 2026: Discover was removed. Cuisine lookup now lives in food preferences; chat and plans use saved cuisines without a separate taste setup. Provider branding is limited to small attribution. See QLOO_INTEGRATION.md for the current flow.
+
 > Current integration update — 30 October 2026: Qloo public taste intelligence is now integrated into this app and backend, including main Nebius planning/chat and Discover. See QLOO_INTEGRATION.md and the latest NEBIUS_VALIDATION.md entry. Earlier dated entries below are historical.
 
 # Valora Nebius submission

@@ -135,7 +135,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.text(
-          'NVIDIA Nemotron via Nebius · nvidia/nemotron-3-super-120b-a12b',
+          'Powered by NVIDIA Nemotron via Nebius · nvidia/nemotron-3-super-120b-a12b',
         ),
         findsOneWidget,
       );

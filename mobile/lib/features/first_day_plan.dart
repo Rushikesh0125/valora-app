@@ -47,7 +47,7 @@ class FirstDayPlanView extends StatelessWidget {
               ),
             ] else if (needsConsent) ...[
               const Text(
-                'Allow NVIDIA Nemotron via Nebius to use your diet, cuisine, cooking time, budget and meal coverage for your first-day plan. Allergies and foods to avoid filter recipes on the server. Qloo receives public taste IDs and cuisine signals to rank candidates; health, allergies and chat stay out of Qloo requests. Saved health details are not sent. You can turn cloud AI off in AI settings.',
+                'Allow cloud AI to use your food preferences and practical limits to prepare today’s meals. Allergies and foods to avoid filter recipes on the server. Taste analysis receives only public cuisine signals. Saved health details are not sent. You can turn cloud AI off in AI settings.',
               ),
               const SizedBox(height: 8),
               FilledButton(
@@ -94,7 +94,7 @@ class FirstDayPlanView extends StatelessWidget {
                 ),
               if (!compact)
                 Text(
-                  'NVIDIA Nemotron via Nebius · ${data['model']}',
+                  'Powered by ${data['qloo'] == null ? '' : 'Qloo · '}NVIDIA Nemotron via Nebius',
                   style: const TextStyle(
                     fontSize: 11,
                     color: ValoraColors.muted,
@@ -120,7 +120,7 @@ class FirstDayPlanView extends StatelessWidget {
               ),
               if (data['error'] is String)
                 Text(
-                  'Reason: ${data['error']}. For qloo_taste_required, select and save tastes in Discover.',
+                  'We could not prepare your meals. Your saved food preferences are still applied. Please retry or check your cuisine preferences in You.',
                 ),
               TextButton(
                 onPressed: () => planner.refresh(retry: true),

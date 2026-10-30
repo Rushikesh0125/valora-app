@@ -18,8 +18,7 @@ class AiSettingsPage extends StatelessWidget {
         children: [
           const Heading(
             'Choose how Valora uses AI',
-            subtitle:
-                'AI conversations use NVIDIA Nemotron via Nebius after you enable cloud consent.',
+            subtitle: 'Enable cloud AI for personalized meal conversations.',
           ),
           if (session.backendApi == null)
             const InfoNote(
@@ -32,12 +31,12 @@ class AiSettingsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'NVIDIA Nemotron via Nebius',
+                    'Personal meal assistant',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'When enabled, your messages and bounded conversation history are sent through the Valora server to Nebius Token Factory. Saved food restrictions always filter meal choices on the server; Nebius receives eligible recipe candidates. First-day planning uses the food preferences you confirm during onboarding. Qloo receives only selected public taste IDs and allowlisted cuisine signals; allergies, health details and raw chat are not sent to Qloo. Saved health fields are not automatically included; anything you type is sent. You can disable consent at any time.',
+                    'When enabled, cloud AI receives your messages, recent conversation and eligible recipes. Saved food restrictions filter meals on the server. Cuisine lookup and taste analysis receive only public cuisine signals—not your allergies, health details or raw chat. Saved health fields are not automatically shared; anything you type is sent. You can disable consent at any time.',
                     style: TextStyle(
                       fontSize: 11,
                       height: 1.5,
@@ -118,9 +117,7 @@ class AiSettingsPage extends StatelessWidget {
                           : session.installGemma,
                       icon: const Icon(Icons.download),
                       label: Text(
-                        session.aiSettingsBusy
-                            ? 'Downloading…'
-                            : 'Unlock AI',
+                        session.aiSettingsBusy ? 'Downloading…' : 'Unlock AI',
                       ),
                     ),
                   TextButton(
@@ -132,7 +129,7 @@ class AiSettingsPage extends StatelessWidget {
             ),
           ] else
             const InfoNote(
-              'This variant uses Nebius cloud inference. No local model download is required. Saved-state questions still work without cloud AI.',
+              'No local model download is required. Saved-state questions still work without cloud AI.',
               amber: true,
             ),
           if (session.aiSettingsMessage.isNotEmpty)

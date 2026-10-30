@@ -150,7 +150,7 @@ class _ChatPageState extends State<ChatPage> {
                     builder: (context) => AlertDialog(
                       title: const Text('You control the context'),
                       content: const Text(
-                        'Your saved diet, allergens, foods to avoid and cooking time filter meal suggestions on the server. Nebius receives recent messages and eligible recipes. Qloo receives only public taste IDs and cuisine signals, never your health fields, food restrictions or raw chat. Saved health fields are excluded. Anything you type in chat is sent as part of your message.',
+                        'Your saved food rules filter meal suggestions on the server. Cloud AI receives recent messages and eligible recipes. Taste analysis receives only public cuisine signals, never your health fields, food restrictions or raw chat. Anything you type in chat is sent as part of your message.',
                       ),
                       actions: [
                         TextButton(
@@ -180,7 +180,11 @@ class _ChatPageState extends State<ChatPage> {
                         Text(
                           'Ingredients: ${((pending['recipe'] as Map)['ingredients'] as List).join(', ')}',
                         ),
-                        if(pending['explanation'] is String)Text(pending['explanation'] as String,style:const TextStyle(fontSize:12)),
+                        if (pending['explanation'] is String)
+                          Text(
+                            pending['explanation'] as String,
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -824,7 +828,10 @@ class _Message extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       (switch (entry.source) {
-                            'nebius' => 'NVIDIA Nemotron via Nebius',
+                            'nebius' =>
+                              entry.text.contains('Related cuisines:')
+                                  ? 'Powered by Qloo · NVIDIA Nemotron via Nebius'
+                                  : 'Powered by NVIDIA Nemotron via Nebius',
                             'knowledge' => 'Published study sources',
                             'valora' => 'Valora · saved food rules',
                             'on_device_gemma' => 'Gemma · on device',

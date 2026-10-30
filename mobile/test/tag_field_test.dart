@@ -1,9 +1,96 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:valora_mobile/core/widgets.dart';
 import 'package:valora_mobile/core/tag_suggestions.dart';
 
 void main() {
+  testWidgets('allergy autocomplete retains food aliases such as paneer', (
+    t,
+  ) async {
+    String saved = '';
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TagField(
+            'Allergies',
+            value: '',
+            suggestions: [...allergySuggestions, ...foodSuggestions],
+            onChanged: (value) => saved = value,
+          ),
+        ),
+      ),
+    );
+    await t.enterText(find.byType(TextFormField), 'paneer');
+    await t.pump();
+    await t.tap(find.text('Milk / dairy'));
+    await t.pump();
+    expect(saved, 'milk');
+  });
+
+  testWidgets('live cuisine lookup is debounced and discards stale results', (
+    t,
+  ) async {
+    final calls = <String>[];
+    final first = Completer<List<TagSuggestion>>();
+    final second = Completer<List<TagSuggestion>>();
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TagField(
+            'Cuisine',
+            value: '',
+            onChanged: (_) {},
+            onLookup: (q) {
+              calls.add(q);
+              return q == 'In' ? first.future : second.future;
+            },
+          ),
+        ),
+      ),
+    );
+    await t.enterText(find.byType(TextFormField), 'In');
+    await t.pump(const Duration(milliseconds: 300));
+    expect(calls, isEmpty);
+    await t.pump(const Duration(milliseconds: 250));
+    expect(calls, ['In']);
+    await t.enterText(find.byType(TextFormField), 'It');
+    await t.pump(const Duration(milliseconds: 550));
+    expect(calls, ['In', 'It']);
+    first.complete([const TagSuggestion('Indian', 'Indian')]);
+    await t.pump();
+    expect(find.text('Indian'), findsNothing);
+    second.complete([const TagSuggestion('Italian', 'Italian')]);
+    await t.pumpAndSettle();
+    expect(find.text('Italian'), findsOneWidget);
+    await t.tap(find.text('Italian'));
+    await t.pump();
+    expect(find.byType(InputChip), findsOneWidget);
+    expect(find.text('Powered by Qloo'), findsOneWidget);
+  });
+  testWidgets('live lookup ignores late results after disposal', (t) async {
+    final pending = Completer<List<TagSuggestion>>();
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TagField(
+            'Cuisine',
+            value: '',
+            suggestions: const [TagSuggestion('Indian', 'Indian')],
+            onChanged: (_) {},
+            onLookup: (_) => pending.future,
+          ),
+        ),
+      ),
+    );
+    await t.enterText(find.byType(TextFormField), 'In');
+    await t.pump(const Duration(milliseconds: 550));
+    await t.pumpWidget(const SizedBox());
+    pending.complete([const TagSuggestion('Indian', 'Indian')]);
+    await t.pump();
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets(
     'tags restore, add, deduplicate, remove and retain unfinished drafts',
     (tester) async {
