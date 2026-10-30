@@ -233,3 +233,11 @@ Executed backend type checking and **138 tests**, Flutter analysis clean and **7
 Final live authenticated synthetic checks: five apples + two one-litre milk cartons → apple 5 / milk 2 cartons (1 litre each), 1952 ms; half kilo potatoes + dozen eggs → potato 0.5 kg / egg 12, 1904 ms; ran out of onions → removal draft, 1033 ms. Assertions check quantities and item count, not only HTTP status. Test identity and account-owned records were deleted afterward. No private user transcript logged. User reported all phrases failing, without an exact transcript; these reproduced defects do not substitute for physical-device acceptance, which remains pending.
 
 Worker `1ffee556-77e0-40fe-bbda-a985116fec2b`. APK `Valora-0.2.2-2026-10-30.apk`, Android versionCode 4, launcher Valora, unchanged application ID/signing. SHA-256 `B64E2035DCF29D4C80B06C9668B8B2A19F296FFB579D09D195B8E8FD95A74379`. App update is required for chat routing and bare-count acceptance.
+
+## Supplied brand kit — 30 October 2026, 0.2.3
+
+Applied the supplied Valora-Logo.zip primary wordmark and square bowl/leaves icon. The shared Wordmark widget now renders the transparent brand image with a Valora semantic label, replacing the old text logo in headers, authentication and onboarding. A checked-in Pillow generator derives cropped display artwork, Android density icons, adaptive foreground/background and API-33 monochrome resources, iOS icon sizes and web/PWA icons from the supplied sources. No generative artwork or new runtime dependency was used. Android app ID, callback, signing and backend remain unchanged. Build-generated Kotlin cache is ignored.
+
+Executed Flutter analysis (clean), all 73 Flutter tests, release APK build/signature verification and web release build. Independent review checked source artwork/path geometry, adaptive safe-area placement, iOS RGB dimensions, semantic labeling and narrow-layout tests. APK inspection verifies the bundled wordmark bytes match the generated source asset; compiled adaptive XML points to the new foreground, monochrome and brand background #1F5A44. Physical-device launcher rendering and iOS compilation were not performed.
+
+APK version 0.2.3+5, launcher Valora. File `Valora-0.2.3-2026-10-30.apk`. SHA-256 `B2AE1FD707A7DE3B9CF1CA6CECC4F5A878F2F48D828EE709EFF3C68F5F0F7D43`.

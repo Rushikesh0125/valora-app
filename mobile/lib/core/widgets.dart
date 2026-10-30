@@ -32,32 +32,14 @@ void toast(BuildContext context, String text) {
 class Wordmark extends StatelessWidget {
   const Wordmark({super.key});
   @override
-  Widget build(BuildContext context) => const FittedBox(
-    fit: BoxFit.scaleDown,
-    child: Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'valora',
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 25,
-              fontWeight: FontWeight.w800,
-              color: ValoraColors.forest,
-              letterSpacing: -1.4,
-            ),
-          ),
-          TextSpan(
-            text: '.',
-            style: TextStyle(
-              color: Color(0xFFA2C9AE),
-              fontSize: 25,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-      maxLines: 1,
+  Widget build(BuildContext context) => SizedBox(
+    width: 142,
+    height: 44,
+    child: Image.asset(
+      'assets/brand/valora-logo-app.png',
+      fit: BoxFit.contain,
+      semanticLabel: 'Valora',
+      filterQuality: FilterQuality.high,
     ),
   );
 }

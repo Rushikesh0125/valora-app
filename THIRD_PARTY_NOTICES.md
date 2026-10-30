@@ -22,3 +22,5 @@ Public repository and video publication remain blocked on this asset review.
 Flutter Markdown Plus and Dart markdown are used for formatted assistant replies. Their package license notices are bundled through Flutter's package-license mechanism. Research summaries are original short notes with citation links; publication text is not relicensed under this repository's MIT license.
 
 The speech_to_text package and its platform dependencies provide system speech recognition. Their package license notices are included through Flutter's license mechanism. System speech recognition is provided by the device/platform service, not the Nebius model.
+
+Valora brand artwork in `mobile/assets/brand` was supplied by the project owner in Valora-Logo.zip. Platform icons and the cropped transparent wordmark are generated from those source files by `mobile/scripts/generate_brand_assets.py`; the SVG wordmark uses outlined lettering.

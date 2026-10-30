@@ -78,3 +78,7 @@ The composer and suggestion chips share one router. Saved-data reads require no 
 The Include food preferences option is off by default. Turning it on attaches selected active food preferences, reported allergies and practical limits. Health-context fields, arbitrary saved memory, pantry quantities and example plans are not attached automatically. Previous conversation messages are included regardless of that toggle, as described in the interface.
 
 Retry keeps the existing user message. Sending while busy preserves the draft. AI cannot execute profile edits, generate a persisted plan, or place orders. Real Gemma inference still needs runtime verification on a supported device with the model installed. Restore cloud fallback by setting `localOnly: false` when the on-device test is complete.
+
+## Brand assets
+
+The shared Wordmark widget uses the supplied Valora primary logo. Android launcher icons include adaptive and monochrome variants; iOS and web icons use the supplied square mark. Regenerate platform assets from the checked-in source artwork with `python mobile/scripts/generate_brand_assets.py` from the repository root (requires Pillow). App ID, callback and signing are unchanged.

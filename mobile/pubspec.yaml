@@ -1,7 +1,7 @@
 name: valora_mobile
 description: Valora personal food planning mobile app.
 publish_to: none
-version: 0.2.2+4
+version: 0.2.3+5
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -26,6 +26,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/brand/valora-logo-app.png
     - assets/licenses/GEMMA-4-APACHE-2.0.txt
     - assets/licenses/GEMMA-4-NOTICE.txt
   fonts:
