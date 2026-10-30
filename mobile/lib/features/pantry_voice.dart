@@ -10,9 +10,17 @@ import '../core/tag_suggestions.dart';
 import '../core/widgets.dart';
 
 class PantryVoicePanel extends StatefulWidget {
-  const PantryVoicePanel({super.key, required this.session, this.speech});
+  const PantryVoicePanel({
+    super.key,
+    required this.session,
+    this.speech,
+    this.initialTranscript = '',
+    this.autoPreview = false,
+  });
   final SessionController session;
   final PantrySpeech? speech;
+  final String initialTranscript;
+  final bool autoPreview;
   @override
   State<PantryVoicePanel> createState() => _PantryVoicePanelState();
 }
@@ -44,6 +52,11 @@ class _PantryVoicePanelState extends State<PantryVoicePanel>
     foodGeneration = widget.session.foodRecordsGeneration;
     WidgetsBinding.instance.addObserver(this);
     widget.session.addListener(accountChanged);
+    transcript.text = widget.initialTranscript;
+    if (widget.autoPreview)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !invalid) unawaited(preview());
+      });
   }
 
   void accountChanged() {
@@ -165,6 +178,12 @@ class _PantryVoicePanelState extends State<PantryVoicePanel>
                 e is BackendException &&
                     e.message == 'cloud_ai_consent_required'
                 ? 'Enable cloud AI in AI settings to interpret natural language.'
+                : e is BackendException &&
+                      [
+                        'account_rate_limited',
+                        'ai_provider_rate_limited',
+                      ].contains(e.message)
+                ? 'Too many requests. Wait a minute and try again. Your pantry is unchanged.'
                 : 'Could not interpret the list. Your pantry is unchanged. Check the transcript and retry.',
           );
         return;
@@ -263,7 +282,7 @@ class _PantryVoicePanelState extends State<PantryVoicePanel>
       });
       return;
     }
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
 
   @override

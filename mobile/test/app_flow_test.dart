@@ -29,6 +29,21 @@ Future<void> onboard(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('chat opens pantry review and waits for confirmation', (t) async {
+    final session = SessionController()..onboarded = true;
+    addTearDown(session.dispose);
+    await t.pumpWidget(ValoraApp(session: session));
+    await t.pumpAndSettle();
+    await session.submitChat('add rice two kg');
+    await t.pumpAndSettle();
+    expect(find.textContaining('Update Rice:'), findsOneWidget);
+    expect(session.pantry.first.amount, '~1 kg');
+    await t.ensureVisible(find.text('Confirm pantry change'));
+    await t.tap(find.text('Confirm pantry change'));
+    await t.pumpAndSettle();
+    expect(session.pantry.first.amount, '2 kg');
+  });
+
   testWidgets(
     'one-page onboarding preserves scroll and exposes an Other allergy field',
     (tester) async {

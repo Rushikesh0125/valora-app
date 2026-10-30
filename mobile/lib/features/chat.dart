@@ -1,3 +1,4 @@
+import 'pantry_voice.dart';
 import 'voice_chat.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
@@ -87,6 +88,37 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     final s = widget.session, planner = widget.session.firstDayPlanner;
     final pending = planner?.proposal;
+    final pantryDraft = s.takePantryChatDraft();
+    if (pantryDraft != null) {
+      final epoch = s.accountGeneration;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted || epoch != s.accountGeneration) return;
+        final saved = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  MediaQuery.viewInsetsOf(context).bottom + 24,
+                ),
+                child: PantryVoicePanel(
+                  session: s,
+                  initialTranscript: pantryDraft,
+                  autoPreview: true,
+                ),
+              ),
+            ),
+          ),
+        );
+        if (mounted && epoch == s.accountGeneration)
+          s.finishPantryChat(saved == true);
+      });
+    }
+
     return Column(
       children: [
         if (s.aiService != null)

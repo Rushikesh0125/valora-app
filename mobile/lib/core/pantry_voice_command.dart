@@ -1,3 +1,4 @@
+import 'tag_suggestions.dart';
 import 'models.dart';
 
 class PantryVoiceCommand {
@@ -135,7 +136,9 @@ List<PantryVoiceCommand>? pantryCommandsFromDraft(Map<String, dynamic> draft) {
     if (!remove) {
       if (amount is! String || amount.trim().isEmpty || amount.length > 200)
         return null;
-      final match = RegExp(r'^(\d+(?:\.\d+)?)\s*[^0-9]').firstMatch(amount);
+      final match = RegExp(
+        r'^(\d+(?:\.\d+)?)(?=\s*[a-zA-Z(]|$)',
+      ).firstMatch(amount);
       if (match == null || double.parse(match[1]!) <= 0) return null;
     }
     result.add(
@@ -147,4 +150,43 @@ List<PantryVoiceCommand>? pantryCommandsFromDraft(Map<String, dynamic> draft) {
     );
   }
   return result;
+}
+
+/// Routes explicit stock updates, not dietary preferences or symptom reports.
+bool isPantryUpdate(String text) {
+  final s = text.toLowerCase().trim();
+  if (RegExp(
+    r"\b(allerg\w*|prefer\w*|avoid|cuisines?|meal plan|diet|do not eat|don't eat)\b",
+  ).hasMatch(s))
+    return false;
+  if (RegExp(
+    r"\b(?:i have|i feel|i am suffering from) (?:a |some )?(?:cold|fever|cough)\b",
+  ).hasMatch(s))
+    return false;
+  if (RegExp(
+    r"^(?:please )?(?:add|save|set|update|remove|delete)\b",
+  ).hasMatch(s))
+    return true;
+  if (RegExp(
+    r"\b(?:bought|purchased|picked up|ran out of|used up|finished all)\b",
+  ).hasMatch(s))
+    return true;
+  final stockPrefix = RegExp(
+    r"^(?:i have|i've got|i’ve got|i have got|there is|there are)\b",
+  ).firstMatch(s);
+  if (stockPrefix == null) return false;
+  final tail = s
+      .substring(stockPrefix.end)
+      .trim()
+      .replaceFirst(RegExp(r'^(?:some|a|an|few) '), '');
+  final foodFirst = foodSuggestions.any(
+    (food) => [food.id, ...food.aliases].any(
+      (v) =>
+          RegExp('^' + RegExp.escape(v.toLowerCase()) + r'\b').hasMatch(tail),
+    ),
+  );
+  return foodFirst ||
+      RegExp(
+        r'\d|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|half|quarter|kg|kilo|litre|liter|pantry)\b',
+      ).hasMatch(tail);
 }

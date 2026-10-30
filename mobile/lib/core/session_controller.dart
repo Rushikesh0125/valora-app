@@ -15,6 +15,25 @@ import 'google_sign_in.dart';
 
 /// In-memory product state plus explicitly connected API and AI services.
 class SessionController extends ChangeNotifier {
+  String? pantryChatDraft;
+  String? takePantryChatDraft() {
+    final draft = pantryChatDraft;
+    pantryChatDraft = null;
+    return draft;
+  }
+
+  void finishPantryChat(bool saved) {
+    chat.add(
+      ChatEntry(
+        saved
+            ? 'Pantry updated. Your confirmed changes are saved.'
+            : 'You can reopen pantry to review or edit items.',
+        false,
+      ),
+    );
+    notifyListeners();
+  }
+
   ChatAction? pendingChatAction;
   String _actionSnapshot = '';
   bool chatActionApplied = false, chatActionBusy = false;
@@ -288,6 +307,7 @@ class SessionController extends ChangeNotifier {
   }
 
   void clearChat() {
+    pantryChatDraft = null;
     if (aiBusy || chatActionBusy || contextActionBusy) return;
     pendingChatAction = null;
     pendingContextActions = null;
@@ -736,6 +756,7 @@ class SessionController extends ChangeNotifier {
     chatActionApplied = chatActionBusy = false;
     chatActionMessage = '';
     _accountEpoch++;
+    pantryChatDraft = null;
     _saveTimer?.cancel();
     _saveWork = null;
     profile = Profile();
@@ -784,6 +805,7 @@ class SessionController extends ChangeNotifier {
     firstDayPlanner?.dispose();
     _disposed = true;
     _accountEpoch++;
+    pantryChatDraft = null;
     _saveTimer?.cancel();
     super.dispose();
   }
@@ -1158,6 +1180,13 @@ class SessionController extends ChangeNotifier {
             '${action.label}: ${action.current(profile)} → ${action.value}';
         chat.add(ChatEntry(clean, true));
       }
+      notifyListeners();
+      return;
+    }
+    if (isPantryUpdate(clean)) {
+      conversation = true;
+      chat.add(ChatEntry(clean, true));
+      pantryChatDraft = clean;
       notifyListeners();
       return;
     }

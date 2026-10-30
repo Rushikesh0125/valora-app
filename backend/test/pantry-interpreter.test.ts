@@ -24,3 +24,21 @@ describe('pantry natural language drafts',()=>{
     await expect(new PantryInterpreter(db,env).interpret(user,'rice')).rejects.toThrow('cloud_ai_consent_required');
   });
 });
+
+describe('pantry quantity integrity',()=>{
+ it('rejects corrupted quantity strings before emitting a usable draft',async()=>{
+  vi.spyOn(provider,'callNebius').mockResolvedValue({text:JSON.stringify({needsClarification:false,operations:[{action:'save',name:'apple',amount:'}, {'}]}),inputTokens:1,outputTokens:1});
+  await expect(new PantryInterpreter(db,env).interpret(user,'I have five apples')).rejects.toThrow('ai_provider_invalid_response');
+ });
+ it('accepts explicit item counts without requiring an invented unit',async()=>{
+  const model=vi.spyOn(provider,'callNebius').mockResolvedValue({text:JSON.stringify({needsClarification:false,operations:[{action:'save',name:'apple',amount:'5'}]}),inputTokens:1,outputTokens:1});
+  const draft=await new PantryInterpreter(db,env).interpret(user,'I have five apples');expect(draft.status).toBe('draft');expect(draft.operations?.[0].amount).toBe('5');expect(model.mock.calls[0][5]).toBeUndefined();
+ });
+});
+
+describe('measurement preservation',()=>{
+ it('does not accept a dropped measurement unit as an item count',async()=>{
+  vi.spyOn(provider,'callNebius').mockResolvedValue({text:'{"needsClarification":false,"operations":[{"action":"save","name":"potato","amount":"0.5"}]}',inputTokens:1,outputTokens:1});
+  await expect(new PantryInterpreter(db,env).interpret(user,'I bought half a kilo of potatoes')).rejects.toThrow('ai_provider_invalid_response');
+ });
+});

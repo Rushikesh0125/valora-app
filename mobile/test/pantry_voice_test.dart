@@ -61,6 +61,55 @@ Future<void> open(
 
 void main() {
   test(
+    'count quantities without units are valid and pantry intent excludes health/preferences',
+    () {
+      final commands = pantryCommandsFromDraft({
+        'status': 'draft',
+        'operations': [
+          {'action': 'save', 'name': 'apple', 'amount': '5'},
+          {'action': 'save', 'name': 'milk', 'amount': '1 litre'},
+        ],
+      });
+      expect(commands, hasLength(2));
+      expect(commands!.first.amount, '5');
+      expect(isPantryUpdate('I have five apples and 1 litre of milk'), true);
+      expect(isPantryUpdate('I have a cold'), false);
+      expect(isPantryUpdate('I have rice'), true);
+      expect(isPantryUpdate('I bought 2 bottles of cold coffee'), true);
+      expect(isPantryUpdate('I have a peanut allergy'), false);
+      expect(isPantryUpdate('I prefer Italian food'), false);
+      expect(
+        pantryCommandsFromDraft({
+          'status': 'draft',
+          'operations': [
+            {'action': 'save', 'name': 'apple', 'amount': '0'},
+          ],
+        }),
+        isNull,
+      );
+    },
+  );
+  test(
+    'chat routes inventory to a review draft without changing pantry',
+    () async {
+      final session = SessionController();
+      addTearDown(session.dispose);
+      final before = session.pantry.length;
+      await session.submitChat('I have five apples and a litre of milk');
+      expect(session.pantryChatDraft, isNotNull);
+      expect(session.pantry.length, before);
+      expect(
+        session.takePantryChatDraft(),
+        'I have five apples and a litre of milk',
+      );
+      expect(session.pantryChatDraft, isNull);
+      await session.submitChat('Set my weekly budget to INR 3000');
+      expect(session.pendingChatAction, isNotNull);
+      expect(session.pantryChatDraft, isNull);
+    },
+  );
+
+  test(
     'parses single-item save, update and removal commands with spoken quantities',
     () {
       expect(parsePantryVoice('add rice one kilogram')?.amount, '1 kilogram');
