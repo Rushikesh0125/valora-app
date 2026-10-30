@@ -1,30 +1,14 @@
-# Demo recording script — target 2 minutes 40 seconds
+# Valora unified demo — approximately 2:40
 
-Record only after real Nebius inference and Google sign-in are verified. Use
-synthetic data, original app visuals and no third-party music or reference images.
-Do not expose tokens, key files, OAuth codes or cloud console secret values.
+Use a synthetic account, no personal medical details. Record actual results; trim waiting with visible edits. Do not portray illustrative screens as runtime footage.
 
-- 0:00–0:15: Explain Valora: a food-planning assistant that remembers confirmed
-  preferences and keeps the user in control of changes.
-- 0:15–0:35: Show saved vegetarian preferences, budget and cooking time. Explain
-  these are synthetic examples. Show the Nebius consent disclosure and enable it.
-- 0:35–1:10: Enable food-preference sharing. Ask for a simple lunch idea and then
-  a quicker substitution. Show actual replies and the Nemotron/Nebius model label.
-- 1:10–1:40: Request a supported cooking-time preference change. Show confirmation,
-  confirm, then show the profile. Relaunch and show that the preference persists.
-- 1:40–2:00: Ask a saved-state question and explain it uses saved data directly.
-  Disable cloud consent and show the actionable response to a new AI request.
-- 2:00–2:25: Show the architecture: Flutter → isolated Cloudflare Worker/D1 →
-  Nebius Token Factory → NVIDIA Nemotron. Show code/config without secrets.
-- 2:25–2:40: State the implemented limits: advisory suggestions, explicit confirmed
-  edits, no clinical claims or real ordering. End with source and APK access.
+- 0:00–0:20 · Cover and app. “A recent health diagnosis made me rethink what I eat. But every search meant repeating my preferences and restrictions. I built Valora to make everyday food decisions easier.”
+- 0:20–0:40 · Saved profile. “Valora remembers eating preferences, reported allergies, foods to avoid, preferred cuisines and time to cook. These rules shape meal choices. It supports everyday healthy eating, not clinical diets.”
+- 0:40–1:05 · Discover: search Indian/Italian, select exact matches, Review & save tastes. “Qloo adds public taste intelligence. I choose the correct matches and confirm what gets saved. These tastes personalize Discover and my main meal plan.” Show actual returned affinities separately from selected tastes.
+- 1:05–1:25 · Plan and its evidence. “Qloo's returned cuisine affinities reach NVIDIA Nemotron through Nebius. Valora first checks recipe restrictions, then validates the model's selection and saves the plan.” Read actual returned cuisines; never claim an input tag was returned unless shown.
+- 1:25–1:50 · Chat: “I want Italian for dinner tonight.” Show replacement, confirm, open Plan. “I can adapt dinner without rebuilding my day. Changes remain proposals until I confirm them. The other meals stay in place.”
+- 1:50–2:10 · Pantry voice: “I have a kilogram of potatoes and two cartons of milk, one litre each.” Preview and confirm. “Natural speech becomes a batch of proposed pantry updates. I review quantities before saving.”
+- 2:10–2:30 · Architecture: Flutter → Cloudflare Worker/D1 → Qloo taste intelligence + Nebius/NVIDIA Nemotron. “One app and one backend combine taste intelligence, conversational understanding, explicit validation and user control. Private health and restriction fields are not sent to Qloo.”
+- 2:30–2:40 · Saved plan and cover. “Valora is our Android MVP. Next: richer regional food coverage and more rigorous personalization. Eat right, every day.”
 
-Submission description draft:
-
-Valora helps users think through everyday food choices using confirmed preferences
-and bounded conversation context. This Nebius variant adds NVIDIA Nemotron through
-Token Factory to an existing Flutter/Cloudflare application. Saved-data questions
-remain deterministic, cloud inference requires consent, and supported changes
-require review before persistence. The hackathon work includes the provider adapter,
-cloud-first routing, source/model disclosure, failure handling, isolated resources
-and integration tests. Add measured results and working links after verification.
+Before recording: install 0.2.0 over the existing app; check Google sign-in and microphone on the phone. Use remaining meal slots appropriate to recording time. Leave enough time for live discovery (observed 22–29 seconds), then visibly cut loading. Avoid repeated requests within the per-account minute budget. Venue leads are unverified for restrictions and prices; Swiggy ordering is unavailable.
